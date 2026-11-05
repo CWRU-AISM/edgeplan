@@ -207,8 +207,8 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
 <div id="app"></div>
 <script id="plan-data" type="application/json">{
  "planId": "edgesense-proto-dec1",
- "rev": 6,
- "savedAt": "2026-11-05T15:57:33.478Z",
+ "rev": 7,
+ "savedAt": "2026-11-05T16:52:54.213Z",
  "title": "EdgeSense Prototype Plan to Dec 1",
  "goal": "By Tue Dec 1",
  "constraint": "Shop work ends Tue Nov 24. Thanksgiving is Thu Nov 26. In 2021 think[box] closed from Wednesday afternoon to the following Monday, Nov 25–29 is buffer for what Xijia can do alone: firmware, dashboard, a PCB respin if needed, and a soak test.",
@@ -381,8 +381,8 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
    "kind": "task",
    "status": "todo",
    "start": "2026-11-05",
-   "end": "2026-11-08",
-   "notes": "Already agreed for this week."
+   "end": "2026-11-09",
+   "notes": ""
   },
   {
    "id": "e3",
@@ -393,7 +393,7 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
    "status": "todo",
    "start": "2026-11-06",
    "end": "2026-11-06",
-   "notes": "Plus a spare. Ohio vendor (McMaster-Carr has its Aurora, OH site)."
+   "notes": "Plus a spare. Preferred Ohio vendor (McMaster-Carr has its Aurora, OH site)."
   },
   {
    "id": "e4",
@@ -402,14 +402,14 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
    "owner": "Drew, Aiden",
    "kind": "gate",
    "status": "todo",
-   "start": "2026-11-10",
-   "end": "2026-11-10",
+   "start": "2026-11-11",
+   "end": "2026-11-11",
    "notes": "Design freeze for the bottom."
   },
   {
    "id": "e5",
    "track": "enc",
-   "name": "Machine final bottom ×2",
+   "name": "Machine final bottom",
    "owner": "Aiden (lead), Mig",
    "kind": "task",
    "status": "todo",
@@ -420,13 +420,13 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
   {
    "id": "e6",
    "track": "enc",
-   "name": "Top frozen",
+   "name": "Top Assembly",
    "owner": "Drew",
    "kind": "gate",
    "status": "todo",
    "start": "2026-11-12",
    "end": "2026-11-12",
-   "notes": "After the solar panel is chosen."
+   "notes": ""
   },
   {
    "id": "e7",
@@ -462,14 +462,25 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
    "notes": "Last shop day."
   },
   {
+   "id": "tmw3s4wkqrdw",
+   "track": "enc",
+   "name": "Top (metal)",
+   "owner": "",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-25",
+   "end": "2026-12-01",
+   "notes": ""
+  },
+  {
    "id": "b1",
    "track": "tb",
    "name": "Mount hole into bearing base CAM",
    "owner": "Mig",
    "kind": "task",
    "status": "todo",
-   "start": "2026-11-06",
-   "end": "2026-11-09",
+   "start": "2026-11-09",
+   "end": "2026-11-12",
    "notes": "Thread agreed with Drew (D4)."
   },
   {
@@ -479,8 +490,8 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
    "owner": "Mig",
    "kind": "task",
    "status": "doing",
-   "start": "2026-11-05",
-   "end": "2026-11-13",
+   "start": "2026-11-11",
+   "end": "2026-11-19",
    "notes": "Turn, slot, drill and tap the disc; face, mill, drill and tap the bases."
   },
   {
@@ -651,7 +662,7 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
   {
    "id": "D4",
    "decision": "Mounting to the testbed",
-   "rec": "Threaded stud through the bottom's center hole into a tapped hole on the bearing base. Agree on the thread before Mig cuts the bearing bases.",
+   "rec": "",
    "who": "Drew, Mig",
    "by": "Mon Nov 9",
    "status": "open"
@@ -662,12 +673,12 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
    "rec": "3 in-stock options at 50×50 and about 30×30 mm, with expected power versus the node's average draw. The top design waits on this.",
    "who": "Xijia",
    "by": "Mon Nov 9",
-   "status": "open"
+   "status": "decided"
   },
   {
    "id": "D6",
    "decision": "Circular contour",
-   "rec": "Include only if Drew has it ready for the Nov 10 review. Otherwise v2.",
+   "rec": "May be difficult for machining",
    "who": "Drew",
    "by": "Tue Nov 10",
    "status": "open"
@@ -683,21 +694,6 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
    "from": "PCB → Enclosure",
    "what": "One bare, unpopulated board from the batch for fit checks",
    "by": "Mon Nov 9"
-  },
-  {
-   "from": "PCB → Enclosure",
-   "what": "Solar panel dimensions, then the panel itself",
-   "by": "Nov 9 / ~Nov 12"
-  },
-  {
-   "from": "Enclosure → Testbed",
-   "what": "Mount: stud thread size and position, so the bearing base gets the matching tapped hole",
-   "by": "Mon Nov 9"
-  },
-  {
-   "from": "Enclosure → PCB",
-   "what": "Rough aluminum bottom for the RF test",
-   "by": "Fri Nov 13"
   },
   {
    "from": "PCB → Integration",
