@@ -207,8 +207,8 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
 <div id="app"></div>
 <script id="plan-data" type="application/json">{
  "planId": "edgesense-proto-dec1",
- "rev": 4,
- "savedAt": "2026-11-05T07:36:36.000Z",
+ "rev": 5,
+ "savedAt": "2026-11-05T15:54:10.948Z",
  "title": "EdgeSense Prototype Plan to Dec 1",
  "goal": "By Tue Dec 1",
  "constraint": "Shop work ends Tue Nov 24. Thanksgiving is Thu Nov 26. In 2021 think[box] closed from Wednesday afternoon to the following Monday, Nov 25–29 is buffer for what Xijia can do alone: firmware, dashboard, a PCB respin if needed, and a soak test.",
@@ -247,7 +247,7 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
    "name": "Solar panel purchase",
    "owner": "Xijia",
    "kind": "task",
-   "status": "todo",
+   "status": "done",
    "start": "2026-11-05",
    "end": "2026-11-05",
    "notes": "3 in-stock options, 50×50 and about 30×30 mm, power versus average draw."
@@ -281,8 +281,8 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
    "owner": "Xijia",
    "kind": "milestone",
    "status": "todo",
-   "start": "2026-11-09",
-   "end": "2026-11-09",
+   "start": "2026-11-10",
+   "end": "2026-11-10",
    "notes": "Hand one bare board to Drew for fit checks."
   },
   {
@@ -292,20 +292,9 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
    "owner": "Xijia",
    "kind": "task",
    "status": "todo",
-   "start": "2026-11-09",
-   "end": "2026-11-10",
-   "notes": "Power, check shorts, MCU, flash, then ADXL380 and the rest. Cover untented vias next to U2 pads first."
-  },
-  {
-   "id": "p4",
-   "track": "pcb",
-   "name": "Order solar panels → arrive",
-   "owner": "Xijia",
-   "kind": "task",
-   "status": "todo",
    "start": "2026-11-10",
    "end": "2026-11-12",
-   "notes": "US distributor stock only (DigiKey, Mouser)."
+   "notes": "Power, check shorts, MCU, flash, then ADXL380 and the rest. Cover untented vias next to U2 pads first."
   },
   {
    "id": "p6",
@@ -314,42 +303,42 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
    "owner": "Xijia",
    "kind": "task",
    "status": "todo",
-   "start": "2026-11-10",
+   "start": "2026-11-11",
    "end": "2026-11-12",
    "notes": "Rails, J-Link, BLE, ADXL ID ×64 reads, charger."
   },
   {
    "id": "p7",
    "track": "pcb",
-   "name": "PCB go / no-go",
+   "name": "Board done",
    "owner": "Xijia",
    "kind": "gate",
    "status": "todo",
-   "start": "2026-11-12",
-   "end": "2026-11-12",
+   "start": "2026-11-13",
+   "end": "2026-11-13",
    "notes": "No-go means a design error. A bad joint is rework, not a respin."
   },
   {
    "id": "p8",
    "track": "pcb",
-   "name": "Build spare board #2",
+   "name": "Build spare board - two more",
    "owner": "Xijia",
    "kind": "task",
    "status": "todo",
-   "start": "2026-11-13",
-   "end": "2026-11-17",
+   "start": "2026-11-14",
+   "end": "2026-11-15",
    "notes": "Demo-day spare."
   },
   {
    "id": "p9",
    "track": "pcb",
-   "name": "Firmware: real data, power, solar",
+   "name": "Firmware debug real data, power, solar",
    "owner": "Xijia",
    "kind": "task",
    "status": "todo",
    "start": "2026-11-13",
-   "end": "2026-11-20",
-   "notes": "Real ADXL stream, current measurement, solar charge test."
+   "end": "2026-11-15",
+   "notes": "ADXL stream, current measurement, solar charge test."
   },
   {
    "id": "p10",
@@ -358,20 +347,20 @@ footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
    "owner": "Xijia",
    "kind": "task",
    "status": "todo",
-   "start": "2026-11-16",
-   "end": "2026-11-24",
+   "start": "2026-11-15",
+   "end": "2026-11-16",
    "notes": "Unbalance shows up as a 1× rotating-speed peak."
   },
   {
    "id": "p11",
    "track": "pcb",
-   "name": "Respin path (only if no-go)",
+   "name": "Respin path (only if PCB no-go)",
    "owner": "Xijia",
    "kind": "contingency",
    "status": "todo",
    "start": "2026-11-13",
-   "end": "2026-11-29",
-   "notes": "Order by Nov 13 with the same outline and a stencil. Boards about Nov 23, bring-up over the break."
+   "end": "2026-11-25",
+   "notes": "If the board not working, order by Nov 13 with the same outline. Boards about Nov 23, bring-up over the break."
   },
   {
    "id": "e1",
