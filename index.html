@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>EdgeSense Prototype Plan to Dec 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<script defer src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<style id="app-style">
+/* Layout idea: an engineering schedule sheet you can edit. Toolbar, a draggable Gantt, then the editable tables. */
+:root {
+  color-scheme: light;
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #15181c;
+  --ink-2: #4a515a;
+  --ink-3: #737b85;
+  --line: #dde1e6;
+  --line-strong: #c5cbd3;
+  --shade: #eff1f4;
+  --focus: #2a78d6;
+  --good: #1a7f37;
+  --warn: #a15c00;
+  --critical: #b8322a;
+  --c-blue: #2a78d6; --c-orange: #eb6834; --c-aqua: #1baf7a; --c-yellow: #eda100;
+  --c-magenta: #e87ba4; --c-green: #008300; --c-violet: #6250d6; --c-red: #e34948; --c-grey: #66707c;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121417; --surface: #1a1d21; --ink: #eef0f3; --ink-2: #b9c0c8; --ink-3: #8b939d;
+    --line: #2d3238; --line-strong: #3d434b; --shade: #21252a; --focus: #3987e5;
+    --good: #3fb950; --warn: #e0a030; --critical: #ef6f63;
+    --c-blue: #3987e5; --c-orange: #d95926; --c-aqua: #199e70; --c-yellow: #c98500;
+    --c-magenta: #d55181; --c-green: #008300; --c-violet: #9085e9; --c-red: #e66767; --c-grey: #9aa3ae;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121417; --surface: #1a1d21; --ink: #eef0f3; --ink-2: #b9c0c8; --ink-3: #8b939d;
+  --line: #2d3238; --line-strong: #3d434b; --shade: #21252a; --focus: #3987e5;
+  --good: #3fb950; --warn: #e0a030; --critical: #ef6f63;
+  --c-blue: #3987e5; --c-orange: #d95926; --c-aqua: #199e70; --c-yellow: #c98500;
+  --c-magenta: #d55181; --c-green: #008300; --c-violet: #9085e9; --c-red: #e66767; --c-grey: #9aa3ae;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 28px 20px 64px; display: grid; gap: 28px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+h1 { font-size: 30px; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 19px; font-weight: 600; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; max-width: 76ch; }
+.muted { color: var(--ink-2); }
+.small { font-size: 13px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+header { display: grid; gap: 8px; }
+.meta { font-size: 13px; color: var(--ink-3); }
+section { display: grid; gap: 12px; }
+.section-head { display: grid; gap: 2px; }
+
+/* toolbar */
+.toolbar { position: sticky; top: 0; z-index: 30; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 16px -12px rgba(0,0,0,.35); }
+.toolbar .sp { flex: 1 1 auto; }
+.toolbar label.inline { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.btn { font: inherit; font-size: 13.5px; font-weight: 500; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line-strong);
+  background: var(--surface); color: var(--ink); cursor: pointer; line-height: 1.3; }
+.btn:hover:not(:disabled) { background: var(--shade); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.primary:hover:not(:disabled) { background: var(--ink-2); border-color: var(--ink-2); }
+.btn.danger { color: var(--critical); border-color: var(--critical); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn[hidden] { display: none; }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, .cell:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+select, input, textarea { font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 6px; padding: 6px 8px; }
+textarea { resize: vertical; }
+.status { font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); flex: none; }
+.status.dirty { color: var(--ink); font-weight: 600; }
+.status.dirty .dot { background: var(--warn); }
+.status.ro .dot { background: var(--ink-3); }
+.banner { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-radius: 8px; background: var(--surface); border: 1px solid var(--warn); font-size: 14px; }
+.banner[hidden] { display: none; }
+.banner p { flex: 1 1 320px; }
+.flash { font-size: 13px; color: var(--ink-2); }
+
+.constraint { border-left: 4px solid var(--critical); background: var(--surface); padding: 12px 16px; border-radius: 0 6px 6px 0; max-width: 86ch; }
+.constraint[hidden] { display: none; }
+
+/* gantt */
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; display: inline-block; }
+.lg-hatch { width: 22px; height: 10px; border-radius: 2px; background: repeating-linear-gradient(135deg, var(--ink-2) 0 3px, transparent 3px 7px); box-shadow: inset 0 0 0 1.5px var(--ink-2); }
+.lg-ms { width: 10px; height: 10px; transform: rotate(45deg); background: var(--ink-2); border-radius: 1px; }
+.lg-gate { width: 10px; height: 10px; transform: rotate(45deg); box-shadow: inset 0 0 0 2px var(--ink-2); border-radius: 1px; }
+.lg-break { width: 22px; height: 10px; background: repeating-linear-gradient(135deg, var(--ink-3) 0 2px, transparent 2px 6px); border-radius: 2px; }
+.gantt-scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.gantt { display: grid; position: relative; font-size: 13px; grid-auto-rows: minmax(30px, auto); }
+.g-corner { position: sticky; left: 0; z-index: 6; background: var(--surface); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 8px 12px; font-size: 12px; font-weight: 600; color: var(--ink-3); display: flex; align-items: end; }
+.g-week { font-size: 12px; font-weight: 600; color: var(--ink-2); padding: 8px 6px 2px; border-left: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 1; }
+.g-day { text-align: center; font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); padding: 2px 0 6px; line-height: 1.25; z-index: 1; border-bottom: 1px solid var(--line); }
+.g-day b { display: block; font-weight: 500; color: var(--ink-2); font-size: 12px; }
+.g-day.today b { color: var(--surface); background: var(--ink); border-radius: 3px; margin: 0 3px; }
+.g-track { grid-column: 1 / -1; z-index: 4; padding-top: 10px; pointer-events: none; }
+.g-track-in { pointer-events: auto; }
+.g-track-in { position: sticky; left: 0; display: inline-flex; align-items: center; gap: 8px; padding: 2px 12px; font-weight: 600; font-size: 13.5px; background: var(--surface); border-radius: 0 6px 6px 0; }
+.g-track-in .who { font-weight: 400; color: var(--ink-2); }
+.mini { font: inherit; font-size: 12px; padding: 1px 8px; border-radius: 5px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.mini:hover { color: var(--ink); background: var(--shade); }
+.g-label { position: sticky; left: 0; z-index: 5; background: var(--surface); border: 0; border-right: 1px solid var(--line); font: inherit; font-size: 13px; color: var(--ink);
+  display: flex; align-items: center; gap: 6px; padding: 0 10px 0 12px; text-align: left; cursor: pointer; min-width: 0; }
+.g-label .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-label .own { color: var(--ink-3); font-size: 12px; white-space: nowrap; margin-left: auto; padding-left: 6px; max-width: 42%; overflow: hidden; text-overflow: ellipsis; }
+.g-label:hover .nm { text-decoration: underline; text-underline-offset: 2px; }
+.si { width: 14px; flex: none; text-align: center; font-size: 11px; font-weight: 700; color: var(--ink-3); }
+.si.doing { color: var(--focus); }
+.si.done { color: var(--good); }
+.si.blocked { color: var(--critical); }
+.g-shade { background: var(--shade); z-index: 0; }
+.g-break { z-index: 0; background: repeating-linear-gradient(135deg, var(--shade) 0 6px, transparent 6px 12px); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+.g-break-label { z-index: 2; align-self: start; justify-self: center; font-size: 11px; font-weight: 600; color: var(--ink-2); background: var(--surface); padding: 0 6px; border-radius: 3px; border: 1px solid var(--line); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.g-vline { z-index: 3; pointer-events: none; justify-self: start; width: 0; border-left: 2px solid var(--ink); }
+.g-vline.deadline { justify-self: end; border-left-color: var(--critical); }
+.g-vtag { z-index: 3; font-size: 11px; font-weight: 600; white-space: nowrap; align-self: center; }
+.g-vtag.today { justify-self: start; color: var(--ink); padding-left: 4px; }
+.g-vtag.deadline { justify-self: end; color: var(--critical); padding-right: 4px; }
+.bar-slot { display: flex; align-items: center; padding: 6px 1px; z-index: 2; min-width: 0; }
+.bar { position: relative; height: 18px; width: 100%; border-radius: 4px; background: var(--c); cursor: grab; touch-action: none; }
+.bar.contingency { background: repeating-linear-gradient(135deg, var(--c) 0 3px, transparent 3px 7px); box-shadow: inset 0 0 0 1.5px var(--c); }
+.bar.st-done { opacity: .45; }
+.bar.st-blocked { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--critical); }
+.bar .h { position: absolute; top: -2px; bottom: -2px; width: 8px; cursor: ew-resize; }
+.bar .h-l { left: -3px; }
+.bar .h-r { right: -3px; }
+.bar:hover, .bar:focus-visible, .bar.dragging { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--c); outline: none; }
+.bar.dragging { cursor: grabbing; }
+.ms-slot { display: flex; align-items: center; justify-content: center; z-index: 2; }
+.ms { width: 14px; height: 14px; transform: rotate(45deg); background: var(--c); border: 2px solid var(--surface); box-shadow: 0 0 0 1.5px var(--c); border-radius: 2px; cursor: grab; touch-action: none; }
+.ms.gate { background: var(--surface); box-shadow: 0 0 0 2px var(--c); }
+.ms.st-done { opacity: .45; }
+.ms:hover, .ms:focus-visible, .ms.dragging { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--c); outline: none; }
+.dim { opacity: .2; }
+.readonly .bar, .readonly .ms { cursor: pointer; }
+.empty-g { grid-column: 1 / -1; padding: 24px 12px; color: var(--ink-2); }
+
+#tip { position: fixed; z-index: 50; pointer-events: none; max-width: 300px; background: var(--ink); color: var(--bg); border-radius: 6px; padding: 8px 10px; font-size: 12.5px; line-height: 1.4; opacity: 0; transition: opacity .08s; }
+#tip.on { opacity: 1; }
+#tip .t { font-weight: 600; }
+#tip .d { font-family: var(--font-mono); opacity: .85; }
+
+/* tables */
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; table-layout: fixed; min-width: 640px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+tbody tr:last-child td { border-bottom: none; }
+th { font-size: 12px; font-weight: 600; color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; background: var(--shade); }
+td.empty { color: var(--ink-3); }
+.cell { min-height: 1.5em; padding: 2px 4px; margin: -2px -4px; border-radius: 4px; white-space: pre-wrap; outline: none; }
+.cell:hover { background: var(--shade); }
+.cell:focus { background: var(--bg); box-shadow: inset 0 0 0 1.5px var(--focus); }
+td select, td input[type="date"] { width: 100%; padding: 3px 6px; font-size: 13px; }
+td.del { text-align: center; padding: 6px 4px; }
+.x { font: inherit; font-size: 13px; border: 1px solid transparent; background: none; color: var(--ink-3); cursor: pointer; border-radius: 5px; padding: 1px 6px; }
+.x:hover { color: var(--critical); border-color: var(--line-strong); }
+.x.armed { color: var(--surface); background: var(--critical); }
+.chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--line-strong); }
+.chip-decided { color: var(--good); border-color: var(--good); }
+.chip-dropped { color: var(--ink-3); }
+.chip-open { color: var(--warn); border-color: var(--warn); }
+
+/* dialog */
+dialog { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0; width: min(580px, calc(100vw - 32px)); box-shadow: 0 24px 60px -20px rgba(0,0,0,.5); }
+dialog::backdrop { background: rgba(10, 12, 15, .45); }
+.dlg { display: grid; gap: 12px; padding: 18px 20px 16px; }
+.dlg label { display: grid; gap: 4px; font-size: 12.5px; color: var(--ink-2); font-weight: 500; }
+.dlg label[hidden] { display: none; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 4px; }
+.dlg-actions .sp { flex: 1 1 auto; }
+.err { color: var(--critical); font-size: 13px; min-height: 1em; margin: 0; }
+.swatch-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.swatch-pick label { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; font-size: 13px; color: var(--ink); border: 1px solid var(--line-strong); border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+.swatch-pick input { margin: 0; }
+footer { font-size: 12.5px; color: var(--ink-3); display: grid; gap: 4px; }
+.linkbtn { font: inherit; color: var(--focus); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.dlg ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 13.5px; color: var(--ink-2); }
+.dlg .lede { font-size: 14px; color: var(--ink-2); }
+.dlg a { color: var(--focus); }
+@media (max-width: 520px) {
+  h1 { font-size: 24px; }
+  .wrap { padding: 18px 16px 48px; }
+  .row2 { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { #tip { transition: none; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script id="plan-data" type="application/json">{
+ "planId": "edgesense-proto-dec1",
+ "rev": 3,
+ "savedAt": "2026-11-05T07:24:20.000Z",
+ "title": "EdgeSense Prototype Plan to Dec 1",
+ "goal": "By Tue Dec 1",
+ "constraint": "Shop work ends Tue Nov 24. Thanksgiving is Thu Nov 26. In 2021 think[box] closed from Wednesday afternoon to the following Monday, Nov 25–29 is buffer for what Xijia can do alone: firmware, dashboard, a PCB respin if needed, and a soak test.",
+ "start": "2026-11-05",
+ "end": "2026-12-01",
+ "tracks": [
+  {
+   "id": "pcb",
+   "name": "PCB and firmware",
+   "who": "Xijia",
+   "color": "blue"
+  },
+  {
+   "id": "enc",
+   "name": "Enclosure",
+   "who": "Drew, Aiden, Mig",
+   "color": "orange"
+  },
+  {
+   "id": "tb",
+   "name": "Testbed",
+   "who": "Mig",
+   "color": "aqua"
+  },
+  {
+   "id": "int",
+   "name": "Integration",
+   "who": "Everyone",
+   "color": "grey"
+  }
+ ],
+ "tasks": [
+  {
+   "id": "p3",
+   "track": "pcb",
+   "name": "Solar panel purchase",
+   "owner": "Xijia",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-05",
+   "end": "2026-11-05",
+   "notes": "3 in-stock options, 50×50 and about 30×30 mm, power versus average draw."
+  },
+  {
+   "id": "p1",
+   "track": "pcb",
+   "name": "Parts check, spares, stencil",
+   "owner": "Xijia",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-05",
+   "end": "2026-11-06",
+   "notes": "Order missing parts and 2 spare ADXL380 from DigiKey (about 2 days)."
+  },
+  {
+   "id": "p2",
+   "track": "pcb",
+   "name": "Port firmware to new netlist",
+   "owner": "Xijia",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-05",
+   "end": "2026-11-08",
+   "notes": "Pin map, diag and BLE firmware ready before the boards arrive."
+  },
+  {
+   "id": "p0",
+   "track": "pcb",
+   "name": "Boards arrive",
+   "owner": "Xijia",
+   "kind": "milestone",
+   "status": "todo",
+   "start": "2026-11-09",
+   "end": "2026-11-09",
+   "notes": "Hand one bare board to Drew for fit checks."
+  },
+  {
+   "id": "p5",
+   "track": "pcb",
+   "name": "Solder in stages",
+   "owner": "Xijia",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-09",
+   "end": "2026-11-10",
+   "notes": "Power, check shorts, MCU, flash, then ADXL380 and the rest. Cover untented vias next to U2 pads first."
+  },
+  {
+   "id": "p4",
+   "track": "pcb",
+   "name": "Order solar panels → arrive",
+   "owner": "Xijia",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-10",
+   "end": "2026-11-12",
+   "notes": "US distributor stock only (DigiKey, Mouser)."
+  },
+  {
+   "id": "p6",
+   "track": "pcb",
+   "name": "Bring-up and debug",
+   "owner": "Xijia",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-10",
+   "end": "2026-11-12",
+   "notes": "Rails, J-Link, BLE, ADXL ID ×64 reads, charger."
+  },
+  {
+   "id": "p7",
+   "track": "pcb",
+   "name": "PCB go / no-go",
+   "owner": "Xijia",
+   "kind": "gate",
+   "status": "todo",
+   "start": "2026-11-12",
+   "end": "2026-11-12",
+   "notes": "No-go means a design error. A bad joint is rework, not a respin."
+  },
+  {
+   "id": "p8",
+   "track": "pcb",
+   "name": "Build spare board #2",
+   "owner": "Xijia",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-13",
+   "end": "2026-11-17",
+   "notes": "Demo-day spare."
+  },
+  {
+   "id": "p9",
+   "track": "pcb",
+   "name": "Firmware: real data, power, solar",
+   "owner": "Xijia",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-13",
+   "end": "2026-11-20",
+   "notes": "Real ADXL stream, current measurement, solar charge test."
+  },
+  {
+   "id": "p10",
+   "track": "pcb",
+   "name": "Dashboard spectrum + recording",
+   "owner": "Xijia",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-16",
+   "end": "2026-11-24",
+   "notes": "Unbalance shows up as a 1× rotating-speed peak."
+  },
+  {
+   "id": "p11",
+   "track": "pcb",
+   "name": "Respin path (only if no-go)",
+   "owner": "Xijia",
+   "kind": "contingency",
+   "status": "todo",
+   "start": "2026-11-13",
+   "end": "2026-11-29",
+   "notes": "Order by Nov 13 with the same outline and a stencil. Boards about Nov 23, bring-up over the break."
+  },
+  {
+   "id": "e1",
+   "track": "enc",
+   "name": "CAD around real board + panel",
+   "owner": "Drew",
+   "kind": "task",
+   "status": "doing",
+   "start": "2026-11-05",
+   "end": "2026-11-09",
+   "notes": "Real board, battery and panel. Clamp removed (permanent seal)."
+  },
+  {
+   "id": "e2",
+   "track": "enc",
+   "name": "Rough Al bottom (CAM check)",
+   "owner": "Mig",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-05",
+   "end": "2026-11-08",
+   "notes": "Already agreed for this week."
+  },
+  {
+   "id": "e3",
+   "track": "enc",
+   "name": "Order small-slot end mill",
+   "owner": "Mig",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-06",
+   "end": "2026-11-06",
+   "notes": "Plus a spare. Ohio vendor (McMaster-Carr has its Aurora, OH site)."
+  },
+  {
+   "id": "e4",
+   "track": "enc",
+   "name": "DFM review, bottom frozen",
+   "owner": "Drew, Aiden",
+   "kind": "gate",
+   "status": "todo",
+   "start": "2026-11-10",
+   "end": "2026-11-10",
+   "notes": "Design freeze for the bottom."
+  },
+  {
+   "id": "e5",
+   "track": "enc",
+   "name": "Machine final bottom ×2",
+   "owner": "Aiden (lead), Mig",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-11",
+   "end": "2026-11-17",
+   "notes": "Book CNC time in blocks."
+  },
+  {
+   "id": "e6",
+   "track": "enc",
+   "name": "Top frozen",
+   "owner": "Drew",
+   "kind": "gate",
+   "status": "todo",
+   "start": "2026-11-12",
+   "end": "2026-11-12",
+   "notes": "After the solar panel is chosen."
+  },
+  {
+   "id": "e7",
+   "track": "enc",
+   "name": "Print top + inner insert",
+   "owner": "Drew",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-13",
+   "end": "2026-11-17",
+   "notes": "Polymer top, inner standoff insert glued into the metal bottom."
+  },
+  {
+   "id": "e8",
+   "track": "enc",
+   "name": "Fixes, reprints, glue trial",
+   "owner": "Drew",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-19",
+   "end": "2026-11-23",
+   "notes": "Glue trial on scrap; epoxy needs about 24 h to cure."
+  },
+  {
+   "id": "e9",
+   "track": "enc",
+   "name": "Final parts done",
+   "owner": "All",
+   "kind": "milestone",
+   "status": "todo",
+   "start": "2026-11-24",
+   "end": "2026-11-24",
+   "notes": "Last shop day."
+  },
+  {
+   "id": "b1",
+   "track": "tb",
+   "name": "Mount hole into bearing base CAM",
+   "owner": "Mig",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-06",
+   "end": "2026-11-09",
+   "notes": "Thread agreed with Drew (D4)."
+  },
+  {
+   "id": "b2",
+   "track": "tb",
+   "name": "Bearing bases ×2 + disc",
+   "owner": "Mig",
+   "kind": "task",
+   "status": "doing",
+   "start": "2026-11-05",
+   "end": "2026-11-13",
+   "notes": "Turn, slot, drill and tap the disc; face, mill, drill and tap the bases."
+  },
+  {
+   "id": "b3",
+   "track": "tb",
+   "name": "Assemble + align",
+   "owner": "Mig",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-13",
+   "end": "2026-11-18",
+   "notes": "Shaft, bearings, coupling, disc."
+  },
+  {
+   "id": "b4",
+   "track": "tb",
+   "name": "Motor drive enclosure",
+   "owner": "Mig",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-16",
+   "end": "2026-11-18",
+   "notes": "Safety before any running."
+  },
+  {
+   "id": "b5",
+   "track": "tb",
+   "name": "First runs, balanced vs unbalanced",
+   "owner": "Mig",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-18",
+   "end": "2026-11-20",
+   "notes": "Speed sweep with and without added mass."
+  },
+  {
+   "id": "b6",
+   "track": "tb",
+   "name": "Testbed runs",
+   "owner": "Mig",
+   "kind": "milestone",
+   "status": "todo",
+   "start": "2026-11-20",
+   "end": "2026-11-20",
+   "notes": "Ready for the device."
+  },
+  {
+   "id": "i1",
+   "track": "int",
+   "name": "Decisions locked",
+   "owner": "Edward",
+   "kind": "gate",
+   "status": "todo",
+   "start": "2026-11-06",
+   "end": "2026-11-06",
+   "notes": "D1 to D4: metal, top, seal rule, mount."
+  },
+  {
+   "id": "i2",
+   "track": "int",
+   "name": "Bare-PCB fit check",
+   "owner": "Drew, Xijia",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-09",
+   "end": "2026-11-10",
+   "notes": "Board, battery and connectors in the printed shell; holes line up."
+  },
+  {
+   "id": "i3",
+   "track": "int",
+   "name": "RF test in metal bottom",
+   "owner": "Xijia",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-13",
+   "end": "2026-11-13",
+   "notes": "RSSI at 1, 5 and 10 m within about 10 dB of open air."
+  },
+  {
+   "id": "i4",
+   "track": "int",
+   "name": "Full fit check",
+   "owner": "Drew, Xijia",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-18",
+   "end": "2026-11-18",
+   "notes": "Machined bottom, printed top, board, battery, panel."
+  },
+  {
+   "id": "i5",
+   "track": "int",
+   "name": "Device on testbed (unsealed)",
+   "owner": "Xijia, Mig",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-19",
+   "end": "2026-11-20",
+   "notes": "Live data; added mass changes the spectrum."
+  },
+  {
+   "id": "i6",
+   "track": "int",
+   "name": "Full prototype assembled",
+   "owner": "Everyone",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-23",
+   "end": "2026-11-24",
+   "notes": "Assembled and run on the testbed. Firmware frozen."
+  },
+  {
+   "id": "i7",
+   "track": "int",
+   "name": "Soak test over the break",
+   "owner": "Xijia",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-25",
+   "end": "2026-11-29",
+   "notes": "Device alone on battery and solar, dashboard logging. No motor."
+  },
+  {
+   "id": "i8",
+   "track": "int",
+   "name": "Final test, seal, rehearse",
+   "owner": "Everyone",
+   "kind": "task",
+   "status": "todo",
+   "start": "2026-11-30",
+   "end": "2026-11-30",
+   "notes": "Repeat the Nov 24 test, then glue."
+  },
+  {
+   "id": "i9",
+   "track": "int",
+   "name": "Prototype delivered",
+   "owner": "Everyone",
+   "kind": "milestone",
+   "status": "todo",
+   "start": "2026-12-01",
+   "end": "2026-12-01",
+   "notes": "Tue Dec 1."
+  }
+ ],
+ "closures": [
+  {
+   "name": "Thanksgiving: shops closed",
+   "start": "2026-11-25",
+   "end": "2026-11-29"
+  }
+ ],
+ "decisions": [
+  {
+   "id": "D1",
+   "decision": "Enclosure metal",
+   "rec": "Aluminum 6061 for Dec 1. In stock, cuts several times faster than 304 stainless, about 3× lighter (2.7 vs 8.0 g/cm³). Stainless only as v2 if a customer needs washdown or corrosion resistance.",
+   "who": "Edward",
+   "by": "Fri Nov 6",
+   "status": "open"
+  },
+  {
+   "id": "D2",
+   "decision": "Top material",
+   "rec": "Polymer. A fully metal box blocks BLE. Put the antenna end of the MGM260P under the polymer top, not against a metal wall.",
+   "who": "Edward, Drew",
+   "by": "Fri Nov 6",
+   "status": "open"
+  },
+  {
+   "id": "D3",
+   "decision": "When to seal",
+   "rec": "Glue last, on Nov 30, after the final test. Until then close with screws or tape. Firmware must be final before sealing.",
+   "who": "Edward",
+   "by": "Fri Nov 6",
+   "status": "open"
+  },
+  {
+   "id": "D4",
+   "decision": "Mounting to the testbed",
+   "rec": "Threaded stud through the bottom's center hole into a tapped hole on the bearing base. Agree on the thread before Mig cuts the bearing bases.",
+   "who": "Drew, Mig",
+   "by": "Mon Nov 9",
+   "status": "open"
+  },
+  {
+   "id": "D5",
+   "decision": "Solar panel size",
+   "rec": "3 in-stock options at 50×50 and about 30×30 mm, with expected power versus the node's average draw. The top design waits on this.",
+   "who": "Xijia → Edward",
+   "by": "Mon Nov 9",
+   "status": "open"
+  },
+  {
+   "id": "D6",
+   "decision": "Circular contour",
+   "rec": "Include only if Drew has it ready for the Nov 10 review. Otherwise v2.",
+   "who": "Drew, Edward",
+   "by": "Tue Nov 10",
+   "status": "open"
+  }
+ ],
+ "handoffs": [
+  {
+   "from": "PCB → Enclosure",
+   "what": "Board STEP model, hole positions, tallest component, battery size, connector positions",
+   "by": "Fri Nov 6"
+  },
+  {
+   "from": "PCB → Enclosure",
+   "what": "One bare, unpopulated board from the batch for fit checks",
+   "by": "Mon Nov 9"
+  },
+  {
+   "from": "PCB → Enclosure",
+   "what": "Solar panel dimensions, then the panel itself",
+   "by": "Nov 9 / ~Nov 12"
+  },
+  {
+   "from": "Enclosure → Testbed",
+   "what": "Mount: stud thread size and position, so the bearing base gets the matching tapped hole",
+   "by": "Mon Nov 9"
+  },
+  {
+   "from": "Enclosure → PCB",
+   "what": "Rough aluminum bottom for the RF test",
+   "by": "Fri Nov 13"
+  },
+  {
+   "from": "PCB → Integration",
+   "what": "A working board (or the respin, about Nov 27)",
+   "by": "Thu Nov 12"
+  },
+  {
+   "from": "Testbed → Integration",
+   "what": "A testbed that runs safely, motor drive enclosed",
+   "by": "Fri Nov 20"
+  }
+ ],
+ "risks": [
+  {
+   "risk": "The PCB needs a respin",
+   "plan": "Gate on Nov 12, order by Nov 13, keep the outline, holes and connector positions. Enclosure and testbed keep going. Fallback for Dec 1: best working board, unsealed."
+  },
+  {
+   "risk": "ADXL380 soldering fails again",
+   "plan": "Stencil and paste instead of an iron. Cover untented vias next to U2 pads. 2 spare chips. Run the diag firmware first."
+  },
+  {
+   "risk": "Metal blocks BLE",
+   "plan": "Polymer top. RF test on Nov 13, early enough to change the top or the board orientation."
+  },
+  {
+   "risk": "Thanksgiving closure",
+   "plan": "All shop work done by Nov 24. Confirm the think[box] hours."
+  },
+  {
+   "risk": "Mig is on the testbed, the enclosure and the paper; the CNC is shared",
+   "plan": "Aiden leads enclosure machining after Nov 10. Book CNC time in blocks. Testbed parts take priority until Nov 13."
+  },
+  {
+   "risk": "Design keeps changing (contour, panel size)",
+   "plan": "Bottom frozen Nov 10, top frozen Nov 12. New ideas go to a v2 list."
+  },
+  {
+   "risk": "A sealed unit can't be fixed",
+   "plan": "Glue only on Nov 30, after the final test."
+  }
+ ]
+}</script>
+<script id="app-code">
+(function () {
+  "use strict";
+
+  var FONT_CSS = "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap";
+  var LIB_XLSX = "https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js";
+  var DAY_W = 30, LABEL_W = 290;
+  var GH = { owner: "CWRU-AISM", repo: "edgeplan", branch: "main", path: "index.html", host: "cwru-aism.github.io" };
+  var TOKEN_KEY = "edgeplan-gh-token", LAST_SAVE_KEY = "edgeplan-last-save";
+  var COLORS = {
+    blue: ["Blue", "2A78D6"], orange: ["Orange", "EB6834"], aqua: ["Aqua", "1BAF7A"], yellow: ["Yellow", "EDA100"],
+    magenta: ["Magenta", "E87BA4"], green: ["Green", "008300"], violet: ["Violet", "6250D6"], red: ["Red", "E34948"], grey: ["Grey", "66707C"]
+  };
+  var COLOR_ORDER = ["blue", "orange", "aqua", "yellow", "magenta", "green", "violet", "red", "grey"];
+  var KINDS = { task: "Task", milestone: "Milestone", gate: "Decision gate", contingency: "Only if needed" };
+  var STATUSES = { todo: "Not started", doing: "In progress", done: "Done", blocked: "Blocked" };
+  var STATUS_ICON = { todo: "○", doing: "◐", done: "✓", blocked: "!" };
+  var TABLES = [
+    { key: "decisions", title: "Decisions", sub: "Each later step depends on these. A late decision pushes back everything after it.", add: "Add decision",
+      cols: [{ k: "id", label: "#", w: "56px", mono: true }, { k: "decision", label: "Decision", w: "18%" }, { k: "rec", label: "Recommendation" },
+             { k: "who", label: "Who", w: "13%" }, { k: "by", label: "By", w: "11%" },
+             { k: "status", label: "Status", w: "118px", type: "select", options: { open: "Open", decided: "Decided", dropped: "Dropped" } }],
+      blank: function (rows) { return { id: "D" + (rows.length + 1), decision: "", rec: "", who: "", by: "", status: "open" }; } },
+    { key: "handoffs", title: "Handoffs between tracks", sub: "The PCB is already fabricated, so its outline (38×35 mm, 5 holes) is fixed now. A respin keeps the same outline, holes and connector positions.", add: "Add handoff",
+      cols: [{ k: "from", label: "From → to", w: "20%" }, { k: "what", label: "What is handed over" }, { k: "by", label: "By", w: "16%" }],
+      blank: function () { return { from: "", what: "", by: "" }; } },
+    { key: "risks", title: "Risks and fallbacks", sub: "", add: "Add risk",
+      cols: [{ k: "risk", label: "Risk", w: "32%" }, { k: "plan", label: "What we do" }],
+      blank: function () { return { risk: "", plan: "" }; } }
+  ];
+
+  var saved = JSON.parse(document.getElementById("plan-data").textContent);
+  var state = clone(saved);
+  var dirty = false;
+  var mode = "starting"; // starting | local | host | readonly
+  var artifactApi = null, downloadsApi = null;
+  var filterOwner = "";
+  var flashTimer = null, draftTimer = null;
+  var DRAFT_KEY = "edgesense-plan-draft:" + (saved.planId || "plan");
+  var styleSrc = document.getElementById("app-style").textContent;
+  var codeSrc = document.getElementById("app-code").textContent;
+  var plainOnly = (function () { try { var d = document.createElement("div"); d.contentEditable = "plaintext-only"; return d.contentEditable === "plaintext-only"; } catch (e) { return false; } })();
+
+  /* ---------- utils ---------- */
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function isISO(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s || ""); }
+  function toDate(iso) { var p = iso.split("-").map(Number); return new Date(Date.UTC(p[0], p[1] - 1, p[2])); }
+  function toISO(d) { return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()); }
+  function addDays(iso, n) { return toISO(new Date(toDate(iso).getTime() + n * 864e5)); }
+  function diffDays(a, b) { return Math.round((toDate(b) - toDate(a)) / 864e5); }
+  var WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function dow(iso) { return toDate(iso).getUTCDay(); }
+  function fmtMD(iso) { var d = toDate(iso); return MON[d.getUTCMonth()] + " " + d.getUTCDate(); }
+  function fmtDate(iso) { return WD[dow(iso)] + " " + fmtMD(iso); }
+  function todayISO() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function newId(p) { return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+  function minISO(a, b) { return a < b ? a : b; }
+  function maxISO(a, b) { return a > b ? a : b; }
+  function isPoint(t) { return t.kind === "milestone" || t.kind === "gate"; }
+  function taskEnd(t) { return isPoint(t) ? t.start : (t.end || t.start); }
+  function trackById(id) { for (var i = 0; i < state.tracks.length; i++) if (state.tracks[i].id === id) return state.tracks[i]; return null; }
+  function taskById(id) { for (var i = 0; i < state.tasks.length; i++) if (state.tasks[i].id === id) return state.tasks[i]; return null; }
+  function colorVar(name) { return "var(--c-" + (COLORS[name] ? name : "grey") + ")"; }
+  function canEdit() { return mode !== "readonly"; }
+  function $(id) { return document.getElementById(id); }
+
+  function range() {
+    var s = state.start, e = state.end;
+    state.tasks.forEach(function (t) { s = minISO(s, t.start); e = maxISO(e, taskEnd(t)); });
+    return { s: s, e: e, n: diffDays(s, e) + 1 };
+  }
+  function ownerTokens(s) {
+    return String(s || "").replace(/\([^)]*\)/g, "").split(/,|\+|&|\/|→|\band\b/).map(function (x) { return x.trim(); }).filter(Boolean);
+  }
+  function isEveryone(x) { return /^(all|everyone|team)$/i.test(x); }
+  function matchesFilter(t) {
+    if (!filterOwner) return true;
+    return ownerTokens(t.owner).some(function (x) { return x.toLowerCase() === filterOwner.toLowerCase() || isEveryone(x); });
+  }
+  function allOwners() {
+    var set = {};
+    state.tasks.forEach(function (t) { ownerTokens(t.owner).forEach(function (x) { if (!isEveryone(x)) set[x] = 1; }); });
+    return Object.keys(set).sort(function (a, b) { return a.localeCompare(b); });
+  }
+  function orderedTasks() {
+    var out = [];
+    state.tracks.forEach(function (tr) { state.tasks.forEach(function (t) { if (t.track === tr.id) out.push(t); }); });
+    return out;
+  }
+
+  /* ---------- page shell ---------- */
+  function renderShell() {
+    var h = '<div class="wrap">' +
+      '<header><h1 id="h-title"></h1><p class="muted" id="h-goal"></p><div class="meta" id="h-meta"></div></header>' +
+      '<div class="toolbar" role="toolbar" aria-label="Plan actions">' +
+        '<button class="btn" id="b-add-task" type="button">+ Task</button>' +
+        '<button class="btn" id="b-add-track" type="button">+ Track</button>' +
+        '<button class="btn" id="b-settings" type="button">Plan settings</button>' +
+        '<label class="inline" for="sel-owner">Show</label><select id="sel-owner"></select>' +
+        '<span class="sp"></span>' +
+        '<span class="flash" id="flash" role="status" aria-live="polite"></span>' +
+        '<span class="status" id="st"><span class="dot"></span><span id="st-text">Loading</span></span>' +
+        '<button class="btn" id="b-export" type="button" disabled>Export .xlsx</button>' +
+        '<button class="btn primary" id="b-save" type="button" disabled>Save changes</button>' +
+      '</div>' +
+      '<div class="banner" id="banner" hidden></div>' +
+      '<div class="constraint" id="h-constraint" hidden></div>' +
+      '<section aria-labelledby="gantt-h"><div class="section-head"><h2 id="gantt-h">Schedule</h2>' +
+        '<p class="muted small" id="gantt-help"></p></div>' +
+        '<div class="legend" id="legend"></div>' +
+        '<div class="gantt-scroll" id="gantt-scroll"><div class="gantt" id="gantt"></div></div></section>';
+    TABLES.forEach(function (cfg) {
+      h += '<section aria-labelledby="h-' + cfg.key + '"><div class="section-head"><h2 id="h-' + cfg.key + '">' + esc(cfg.title) + '</h2>' +
+        (cfg.sub ? '<p class="muted small">' + esc(cfg.sub) + '</p>' : '') + '</div><div id="tbl-' + cfg.key + '"></div></section>';
+    });
+    h += '<footer><span>Edits stay in your browser until you press Save changes. Export .xlsx writes the schedule, a colored timeline and every table to Excel.</span>' +
+      '<span id="foot-mode"></span></footer></div><div id="tip" role="tooltip"></div><dialog id="dlg" aria-labelledby="dlg-title"></dialog>';
+    $("app").innerHTML = h;
+  }
+
+  function renderHeader() {
+    $("h-title").textContent = state.title || "Untitled plan";
+    $("h-goal").textContent = state.goal || "";
+    $("h-goal").hidden = !state.goal;
+    var c = $("h-constraint");
+    var txt = state.constraint || "";
+    c.hidden = !txt;
+    var m = txt.match(/^(.+?\.)\s+([\s\S]*)$/);
+    c.innerHTML = m ? "<strong>" + esc(m[1]) + "</strong> " + esc(m[2]) : esc(txt);
+    var when = saved.savedAt ? new Date(saved.savedAt) : null;
+    $("h-meta").textContent = "Timeline " + fmtDate(state.start) + " → deadline " + fmtDate(state.end) +
+      " · version " + (saved.rev || 1) + (when && !isNaN(when) ? ", saved " + when.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "");
+    document.title = state.title || "Plan";
+  }
+
+  function renderOwnerFilter() {
+    var sel = $("sel-owner");
+    var owners = allOwners();
+    if (filterOwner && owners.indexOf(filterOwner) < 0) filterOwner = "";
+    sel.innerHTML = '<option value="">Everyone</option>' + owners.map(function (o) { return '<option value="' + esc(o) + '"' + (o === filterOwner ? " selected" : "") + ">" + esc(o) + "</option>"; }).join("");
+  }
+
+  function renderLegend() {
+    var h = state.tracks.map(function (tr) { return '<span><i class="swatch" style="background:' + colorVar(tr.color) + '"></i>' + esc(tr.name) + "</span>"; }).join("");
+    h += '<span><i class="lg-ms"></i>Milestone</span><span><i class="lg-gate"></i>Decision gate</span><span><i class="lg-hatch"></i>Only if needed</span><span><i class="lg-break"></i>Closure</span>';
+    $("legend").innerHTML = h;
+    $("gantt-help").textContent = canEdit()
+      ? "Drag a bar to move it."
+      : "Hover or tab to a bar for owner, dates and notes. This view is read-only.";
+  }
+
+  /* ---------- gantt ---------- */
+  function renderGantt(focusId) {
+    var g = $("gantt"), scroller = $("gantt-scroll");
+    var keep = scroller.scrollLeft;
+    var r = range();
+    var ed = canEdit();
+    g.classList.toggle("readonly", !ed);
+    g.style.gridTemplateColumns = LABEL_W + "px repeat(" + r.n + ", " + DAY_W + "px)";
+    g.style.width = (LABEL_W + r.n * DAY_W) + "px";
+    var h = '<div class="g-corner" style="grid-row:1/3;grid-column:1">Task<span style="margin-left:auto;font-weight:400">Owner</span></div>';
+    var i = 0;
+    while (i < r.n) {
+      var iso = addDays(r.s, i);
+      var toSun = (7 - dow(iso)) % 7;
+      var j = Math.min(r.n - 1, i + toSun);
+      var endIso = addDays(r.s, j);
+      var label = j - i >= 2 ? fmtMD(iso) + "–" + (toDate(iso).getUTCMonth() === toDate(endIso).getUTCMonth() ? toDate(endIso).getUTCDate() : fmtMD(endIso)) : fmtMD(iso);
+      h += '<div class="g-week" style="grid-row:1;grid-column:' + (i + 2) + "/" + (j + 3) + '" title="' + esc(label) + '">' + esc(label) + "</div>";
+      i = j + 1;
+    }
+    var today = todayISO();
+    for (i = 0; i < r.n; i++) {
+      var d = addDays(r.s, i);
+      h += '<div class="g-day' + (d === today ? " today" : "") + '" style="grid-row:2;grid-column:' + (i + 2) + '"><b>' + toDate(d).getUTCDate() + "</b>" + WD[dow(d)].slice(0, 2) + "</div>";
+    }
+    var row = 3;
+    if (!state.tracks.length) {
+      h += '<div class="empty-g" style="grid-row:3">No tracks yet. Use + Track to add one.</div>';
+      row = 4;
+    }
+    state.tracks.forEach(function (tr) {
+      h += '<div class="g-track" style="grid-row:' + row + '"><div class="g-track-in"><i class="swatch" style="background:' + colorVar(tr.color) + '"></i>' +
+        "<span>" + esc(tr.name) + '</span><span class="who">· ' + esc(tr.who) + "</span>" +
+        (ed ? '<button class="mini" type="button" data-act="add-task" data-track="' + esc(tr.id) + '">+ Task</button><button class="mini" type="button" data-act="edit-track" data-track="' + esc(tr.id) + '">Edit track</button>' : "") +
+        "</div></div>";
+      row++;
+      state.tasks.forEach(function (t) {
+        if (t.track !== tr.id) return;
+        var a = diffDays(r.s, t.start), b = diffDays(r.s, taskEnd(t));
+        var dim = matchesFilter(t) ? "" : " dim";
+        var st = STATUSES[t.status] ? t.status : "todo";
+        h += '<button type="button" class="g-label' + dim + '" style="grid-row:' + row + ';grid-column:1" data-act="edit-task" data-id="' + esc(t.id) + '" title="' + esc(t.name + (t.owner ? " · " + t.owner : "")) + '">' +
+          '<span class="si ' + st + '" aria-label="' + esc(STATUSES[st]) + '" title="' + esc(STATUSES[st]) + '">' + STATUS_ICON[st] + '</span><span class="nm">' + esc(t.name) + '</span><span class="own">' + esc(t.owner) + "</span></button>";
+        var aria = esc(t.name + ", " + datesText(t) + (t.owner ? ", owner " + t.owner : "") + ", " + STATUSES[st]);
+        if (isPoint(t)) {
+          h += '<div class="ms-slot' + dim + '" style="grid-row:' + row + ";grid-column:" + (a + 2) + '"><div class="ms' + (t.kind === "gate" ? " gate" : "") + " st-" + st + '" tabindex="0" role="button" data-id="' + esc(t.id) + '" aria-label="' + aria + '" style="--c:' + colorVar(tr.color) + '"></div></div>';
+        } else {
+          h += '<div class="bar-slot' + dim + '" style="grid-row:' + row + ";grid-column:" + (a + 2) + "/" + (b + 3) + '"><div class="bar' + (t.kind === "contingency" ? " contingency" : "") + " st-" + st + '" tabindex="0" role="button" data-id="' + esc(t.id) + '" aria-label="' + aria + '" style="--c:' + colorVar(tr.color) + '">' +
+            (ed ? '<span class="h h-l" data-h="start"></span><span class="h h-r" data-h="end"></span>' : "") + "</div></div>";
+        }
+        row++;
+      });
+    });
+    var tagRow = row, last = row + 1;
+    for (i = 0; i < r.n; i++) {
+      var dd = addDays(r.s, i), w = dow(dd);
+      var inClosure = (state.closures || []).some(function (c) { return isISO(c.start) && isISO(c.end) && dd >= c.start && dd <= c.end; });
+      if ((w === 0 || w === 6) && !inClosure) h += '<div class="g-shade" style="grid-row:1/' + last + ";grid-column:" + (i + 2) + '"></div>';
+    }
+    (state.closures || []).forEach(function (c) {
+      if (!isISO(c.start) || !isISO(c.end) || c.end < r.s || c.start > r.e) return;
+      var a = Math.max(0, diffDays(r.s, c.start)), b = Math.min(r.n - 1, diffDays(r.s, maxISO(c.start, c.end)));
+      h += '<div class="g-break" style="grid-row:1/' + last + ";grid-column:" + (a + 2) + "/" + (b + 3) + '"></div>';
+      h += '<div class="g-break-label" style="grid-row:3;grid-column:' + (a + 2) + "/" + (b + 3) + '" title="' + esc(c.name) + '">' + esc(c.name || "Closure") + "</div>";
+    });
+    if (today >= r.s && today <= r.e) {
+      var ti = diffDays(r.s, today);
+      h += '<div class="g-vline" style="grid-row:2/' + last + ";grid-column:" + (ti + 2) + '"></div>';
+      h += '<div class="g-vtag today" style="grid-row:' + tagRow + ";grid-column:" + (ti + 2) + "/" + Math.min(ti + 6, r.n + 2) + '">Today</div>';
+    }
+    var di = diffDays(r.s, state.end);
+    if (di >= 0 && di < r.n) {
+      h += '<div class="g-vline deadline" style="grid-row:2/' + last + ";grid-column:" + (di + 2) + '"></div>';
+      h += '<div class="g-vtag deadline" style="grid-row:' + tagRow + ";grid-column:" + Math.max(2, di - 2) + "/" + (di + 3) + '">Deadline</div>';
+    }
+    g.innerHTML = h;
+    scroller.scrollLeft = keep;
+    if (focusId) {
+      var f = g.querySelector('[data-id="' + cssEsc(focusId) + '"].bar, [data-id="' + cssEsc(focusId) + '"].ms');
+      if (f) f.focus();
+    }
+  }
+  function cssEsc(s) { return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/"/g, '\\"'); }
+  function datesText(t) {
+    return isPoint(t) || t.start === taskEnd(t) ? fmtDate(t.start) : fmtDate(t.start) + " → " + fmtDate(taskEnd(t)) + " (" + (diffDays(t.start, taskEnd(t)) + 1) + " days)";
+  }
+
+  /* tooltip */
+  function tipHtml(t, s, e) {
+    var tt = { start: s || t.start, end: e || taskEnd(t), kind: t.kind };
+    var tr = trackById(t.track);
+    return '<div class="t">' + esc(t.name) + '</div><div class="d">' + esc(datesText(tt)) + "</div>" +
+      (t.owner ? "<div>Owner: " + esc(t.owner) + "</div>" : "") +
+      "<div>" + esc(KINDS[t.kind] || "Task") + " · " + esc(STATUSES[t.status] || "Not started") + (tr ? " · " + esc(tr.name) : "") + "</div>" +
+      (t.notes ? "<div>" + esc(t.notes) + "</div>" : "");
+  }
+  function showTip(el, html) {
+    var tip = $("tip");
+    tip.innerHTML = html; tip.classList.add("on");
+    var r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+    var x = Math.min(Math.max(8, r.left + r.width / 2 - tw / 2), window.innerWidth - tw - 8);
+    var y = r.top - th - 10; if (y < 8) y = r.bottom + 10;
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function hideTip() { $("tip").classList.remove("on"); }
+
+  /* drag */
+  var drag = null;
+  function onPointerDown(e) {
+    var el = e.target.closest(".bar, .ms");
+    if (!el || e.button !== 0) return;
+    var t = taskById(el.dataset.id);
+    if (!t) return;
+    var hd = e.target.closest(".h");
+    drag = { id: t.id, el: el, slot: el.parentElement, x0: e.clientX, s0: t.start, e0: taskEnd(t), s: t.start, e: taskEnd(t),
+      how: hd ? hd.dataset.h : "move", moved: false, r: range(), pid: e.pointerId };
+    if (canEdit()) { try { el.setPointerCapture(e.pointerId); } catch (err) {} }
+    e.preventDefault();
+  }
+  function onPointerMove(e) {
+    if (!drag) return;
+    if (!drag.moved && Math.abs(e.clientX - drag.x0) < 4) return;
+    if (!canEdit()) return;
+    drag.moved = true;
+    drag.el.classList.add("dragging");
+    var days = Math.round((e.clientX - drag.x0) / DAY_W);
+    var r = drag.r, s = drag.s0, en = drag.e0;
+    var t = taskById(drag.id);
+    if (drag.how === "move" || isPoint(t)) {
+      days = Math.max(days, diffDays(drag.s0, r.s)); days = Math.min(days, diffDays(drag.e0, r.e));
+      s = addDays(drag.s0, days); en = addDays(drag.e0, days);
+    } else if (drag.how === "start") {
+      s = addDays(drag.s0, days); s = maxISO(s, r.s); s = minISO(s, drag.e0);
+    } else {
+      en = addDays(drag.e0, days); en = minISO(en, r.e); en = maxISO(en, drag.s0);
+    }
+    if (s === drag.s && en === drag.e) return;
+    drag.s = s; drag.e = en;
+    var a = diffDays(r.s, s), b = diffDays(r.s, en);
+    drag.slot.style.gridColumn = isPoint(t) ? String(a + 2) : (a + 2) + "/" + (b + 3);
+    showTip(drag.el, tipHtml(t, s, en));
+  }
+  function onPointerUp() {
+    if (!drag) return;
+    var d = drag; drag = null;
+    d.el.classList.remove("dragging");
+    var t = taskById(d.id);
+    if (!t) return;
+    if (!d.moved) { hideTip(); openTaskEditor(t.id); return; }
+    if (d.s !== d.s0 || d.e !== d.e0) {
+      t.start = d.s; t.end = isPoint(t) ? d.s : d.e;
+      changed({ gantt: true, keyDates: true, focus: t.id });
+      flash((d.how === "move" || isPoint(t) ? "Moved “" : "Changed “") + t.name + "” to " + datesText(t) + ".");
+    }
+    hideTip();
+  }
+  function onPointerCancel() { if (drag) { drag.el.classList.remove("dragging"); drag = null; renderGantt(); hideTip(); } }
+  function onBarKey(e) {
+    var el = e.target.closest(".bar, .ms");
+    if (!el) return;
+    var t = taskById(el.dataset.id);
+    if (!t) return;
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openTaskEditor(t.id); return; }
+    if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && canEdit()) {
+      e.preventDefault();
+      var n = e.key === "ArrowLeft" ? -1 : 1;
+      if (e.shiftKey && !isPoint(t)) {
+        var ne = addDays(taskEnd(t), n);
+        if (ne < t.start) return;
+        t.end = ne;
+      } else {
+        t.start = addDays(t.start, n); t.end = isPoint(t) ? t.start : addDays(taskEnd(t), n);
+      }
+      changed({ gantt: true, keyDates: true, focus: t.id });
+      var nf = $("gantt").querySelector('[data-id="' + cssEsc(t.id) + '"].bar, [data-id="' + cssEsc(t.id) + '"].ms');
+      if (nf) showTip(nf, tipHtml(t));
+    }
+  }
+
+  /* ---------- editable tables ---------- */
+  function renderTable(cfg) {
+    var host = $("tbl-" + cfg.key);
+    if (!state[cfg.key]) state[cfg.key] = [];
+    var rows = state[cfg.key];
+    var ed = canEdit();
+    var h = '<div class="table-scroll"><table><colgroup>' + cfg.cols.map(function (c) { return "<col" + (c.w ? ' style="width:' + c.w + '"' : "") + ">"; }).join("") +
+      (ed ? '<col style="width:64px">' : "") + "</colgroup><thead><tr>" +
+      cfg.cols.map(function (c) { return '<th scope="col">' + esc(c.label) + "</th>"; }).join("") + (ed ? '<th scope="col"><span class="sr">Delete</span></th>' : "") + "</tr></thead><tbody>";
+    if (!rows.length) h += '<tr><td class="empty" colspan="' + (cfg.cols.length + (ed ? 1 : 0)) + '">Nothing here yet.</td></tr>';
+    rows.forEach(function (row, ri) {
+      h += "<tr>";
+      cfg.cols.forEach(function (c) {
+        var v = row[c.k] == null ? "" : String(row[c.k]);
+        var dk = ' data-t="' + cfg.key + '" data-r="' + ri + '" data-k="' + c.k + '"';
+        if (!ed) {
+          if (c.type === "select") h += '<td><span class="chip chip-' + esc(v) + '">' + esc(c.options[v] || v) + "</span></td>";
+          else if (c.type === "date") h += '<td class="mono">' + esc(isISO(v) ? fmtDate(v) : v) + "</td>";
+          else h += "<td" + (c.mono ? ' class="mono"' : "") + ">" + esc(v).replace(/\n/g, "<br>") + "</td>";
+        } else if (c.type === "select") {
+          h += '<td><select class="tsel chip-' + esc(v) + '"' + dk + ' aria-label="' + esc(c.label) + '">' +
+            Object.keys(c.options).map(function (o) { return '<option value="' + o + '"' + (o === v ? " selected" : "") + ">" + esc(c.options[o]) + "</option>"; }).join("") + "</select></td>";
+        } else if (c.type === "date") {
+          h += '<td><input type="date" value="' + esc(v) + '"' + dk + ' aria-label="' + esc(c.label) + '"></td>';
+        } else {
+          h += "<td" + (c.mono ? ' class="mono"' : "") + '><div class="cell" contenteditable="' + (plainOnly ? "plaintext-only" : "true") + '" role="textbox" aria-multiline="true" aria-label="' + esc(c.label) + '"' + dk + ">" + esc(v) + "</div></td>";
+        }
+      });
+      if (ed) h += '<td class="del"><button type="button" class="x" data-act="del-row" data-t="' + cfg.key + '" data-r="' + ri + '" title="Delete row" aria-label="Delete row">✕</button></td>';
+      h += "</tr>";
+    });
+    h += "</tbody></table></div>";
+    if (ed) h += '<div><button class="btn" type="button" data-act="add-row" data-t="' + cfg.key + '">+ ' + esc(cfg.add) + "</button></div>";
+    host.innerHTML = h;
+  }
+  function renderTables() { TABLES.forEach(renderTable); }
+
+  /* ---------- dialogs ---------- */
+  function openDialog(html, onOpen) {
+    var dlg = $("dlg");
+    dlg.innerHTML = html;
+    if (onOpen) onOpen(dlg);
+    if (!dlg.open) { try { dlg.showModal(); } catch (e) { dlg.setAttribute("open", ""); } }
+    var first = dlg.querySelector("input:not([type=radio]), select, textarea, button");
+    if (first) first.focus();
+  }
+  function closeDialog() { var dlg = $("dlg"); if (dlg.open) { try { dlg.close(); } catch (e) { dlg.removeAttribute("open"); } } }
+  function armTwoStep(btn, label, fn) {
+    btn.addEventListener("click", function () {
+      if (btn.dataset.armed) { fn(); return; }
+      btn.dataset.armed = "1"; btn.textContent = label;
+    });
+    btn.addEventListener("blur", function () { if (btn.dataset.armed) { delete btn.dataset.armed; btn.textContent = btn.dataset.orig; } });
+    btn.dataset.orig = btn.textContent;
+  }
+
+  function openTaskEditor(id, presetTrack) {
+    var isNew = !id;
+    var ed = canEdit();
+    if (isNew && !state.tracks.length) { flash("Add a track first."); openTrackEditor(); return; }
+    var r = range();
+    var ds = maxISO(minISO(todayISO(), r.e), state.start);
+    var t = isNew ? { id: newId("t"), track: presetTrack || state.tracks[0].id, name: "", owner: "", kind: "task", status: "todo", start: ds, end: minISO(addDays(ds, 2), maxISO(addDays(ds, 2), ds)), notes: "" } : clone(taskById(id));
+    if (!t) return;
+    var dis = ed ? "" : " disabled";
+    var html = '<form class="dlg" id="f-task" novalidate><h3 id="dlg-title">' + (isNew ? "Add task" : ed ? "Edit task" : "Task") + "</h3>" +
+      '<label>Task<input id="f-name" autocomplete="off" required' + dis + "></label>" +
+      '<div class="row2"><label>Track<select id="f-track"' + dis + ">" + state.tracks.map(function (tr) { return '<option value="' + esc(tr.id) + '">' + esc(tr.name) + "</option>"; }).join("") + "</select></label>" +
+      '<label>Owner<input id="f-owner" list="owners-dl" autocomplete="off"' + dis + '><datalist id="owners-dl">' + allOwners().map(function (o) { return '<option value="' + esc(o) + '">'; }).join("") + "</datalist></label></div>" +
+      '<div class="row2"><label>Type<select id="f-kind"' + dis + ">" + Object.keys(KINDS).map(function (k) { return '<option value="' + k + '">' + KINDS[k] + "</option>"; }).join("") + "</select></label>" +
+      '<label>Status<select id="f-status"' + dis + ">" + Object.keys(STATUSES).map(function (k) { return '<option value="' + k + '">' + STATUSES[k] + "</option>"; }).join("") + "</select></label></div>" +
+      '<div class="row2"><label id="l-start">Start<input type="date" id="f-start" required' + dis + '></label><label id="l-end">End<input type="date" id="f-end"' + dis + "></label></div>" +
+      '<label>Notes<textarea id="f-notes" rows="3"' + dis + "></textarea></label>" +
+      '<p class="err" id="f-err" role="alert"></p><div class="dlg-actions">' +
+      (!isNew && ed ? '<button type="button" class="btn danger" id="f-del">Delete</button><button type="button" class="btn" id="f-up">Move up</button><button type="button" class="btn" id="f-down">Move down</button>' : "") +
+      '<span class="sp"></span><button type="button" class="btn" id="f-cancel">' + (ed ? "Cancel" : "Close") + "</button>" +
+      (ed ? '<button type="submit" class="btn primary" id="f-ok">' + (isNew ? "Add task" : "Apply") + "</button>" : "") + "</div></form>";
+    openDialog(html, function (dlg) {
+      dlg.querySelector("#f-name").value = t.name;
+      dlg.querySelector("#f-track").value = t.track;
+      dlg.querySelector("#f-owner").value = t.owner || "";
+      dlg.querySelector("#f-kind").value = KINDS[t.kind] ? t.kind : "task";
+      dlg.querySelector("#f-status").value = STATUSES[t.status] ? t.status : "todo";
+      dlg.querySelector("#f-start").value = t.start;
+      dlg.querySelector("#f-end").value = taskEnd(t);
+      dlg.querySelector("#f-notes").value = t.notes || "";
+      var syncKind = function () {
+        var pt = /^(milestone|gate)$/.test(dlg.querySelector("#f-kind").value);
+        dlg.querySelector("#l-end").hidden = pt;
+        dlg.querySelector("#l-start").firstChild.textContent = pt ? "Date" : "Start";
+      };
+      dlg.querySelector("#f-kind").addEventListener("change", syncKind);
+      syncKind();
+      dlg.querySelector("#f-cancel").addEventListener("click", closeDialog);
+      if (!ed) return;
+      dlg.querySelector("#f-task").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var name = dlg.querySelector("#f-name").value.trim();
+        var kind = dlg.querySelector("#f-kind").value;
+        var s = dlg.querySelector("#f-start").value, en = dlg.querySelector("#f-end").value;
+        var err = dlg.querySelector("#f-err");
+        if (!name) { err.textContent = "Give the task a name."; dlg.querySelector("#f-name").focus(); return; }
+        if (!isISO(s)) { err.textContent = "Pick a start date."; dlg.querySelector("#f-start").focus(); return; }
+        if (/^(milestone|gate)$/.test(kind)) en = s;
+        else if (!isISO(en)) en = s;
+        if (en < s) { err.textContent = "The end date is before the start date."; dlg.querySelector("#f-end").focus(); return; }
+        var target = isNew ? t : taskById(t.id);
+        target.name = name; target.track = dlg.querySelector("#f-track").value; target.owner = dlg.querySelector("#f-owner").value.trim();
+        target.kind = kind; target.status = dlg.querySelector("#f-status").value; target.start = s; target.end = en;
+        target.notes = dlg.querySelector("#f-notes").value.trim();
+        if (isNew) {
+          var lastIdx = -1;
+          state.tasks.forEach(function (x, i) { if (x.track === target.track) lastIdx = i; });
+          if (lastIdx < 0) state.tasks.push(target); else state.tasks.splice(lastIdx + 1, 0, target);
+        }
+        closeDialog();
+        changed({ gantt: true, keyDates: true, owners: true });
+        flash((isNew ? "Added “" : "Updated “") + name + "”.");
+      });
+      if (!isNew) {
+        armTwoStep(dlg.querySelector("#f-del"), "Click again to delete", function () {
+          state.tasks = state.tasks.filter(function (x) { return x.id !== t.id; });
+          closeDialog(); changed({ gantt: true, keyDates: true, owners: true }); flash("Deleted “" + t.name + "”.");
+        });
+        dlg.querySelector("#f-up").addEventListener("click", function () { moveTask(t.id, -1); });
+        dlg.querySelector("#f-down").addEventListener("click", function () { moveTask(t.id, 1); });
+      }
+    });
+  }
+  function moveTask(id, dir) {
+    var t = taskById(id); if (!t) return;
+    var idx = state.tasks.indexOf(t), j = idx + dir;
+    while (j >= 0 && j < state.tasks.length && state.tasks[j].track !== t.track) j += dir;
+    if (j < 0 || j >= state.tasks.length) { flash("Already at the " + (dir < 0 ? "top" : "bottom") + " of its track."); return; }
+    state.tasks[idx] = state.tasks[j]; state.tasks[j] = t;
+    changed({ gantt: true });
+    flash("Moved “" + t.name + "” " + (dir < 0 ? "up." : "down."));
+  }
+
+  function openTrackEditor(id) {
+    var isNew = !id;
+    var used = state.tracks.map(function (x) { return x.color; });
+    var free = COLOR_ORDER.filter(function (c) { return used.indexOf(c) < 0; })[0] || "grey";
+    var tr = isNew ? { id: newId("k"), name: "", who: "", color: free } : clone(trackById(id));
+    if (!tr) return;
+    var n = isNew ? 0 : state.tasks.filter(function (x) { return x.track === tr.id; }).length;
+    var html = '<form class="dlg" id="f-trk" novalidate><h3 id="dlg-title">' + (isNew ? "Add track" : "Edit track") + "</h3>" +
+      '<div class="row2"><label>Track name<input id="k-name" autocomplete="off" required></label><label>People<input id="k-who" autocomplete="off"></label></div>' +
+      '<fieldset style="border:0;padding:0;margin:0;display:grid;gap:6px"><legend style="font-size:12.5px;color:var(--ink-2);font-weight:500;padding:0;margin-bottom:4px">Color</legend><div class="swatch-pick">' +
+      COLOR_ORDER.map(function (c) { return '<label><input type="radio" name="k-color" value="' + c + '"><i class="swatch" style="background:var(--c-' + c + ')"></i>' + COLORS[c][0] + "</label>"; }).join("") +
+      '</div></fieldset><p class="err" id="k-err" role="alert"></p><div class="dlg-actions">' +
+      (!isNew ? '<button type="button" class="btn danger" id="k-del">Delete track' + (n ? " and its " + n + " task" + (n > 1 ? "s" : "") : "") + '</button><button type="button" class="btn" id="k-up">Move up</button><button type="button" class="btn" id="k-down">Move down</button>' : "") +
+      '<span class="sp"></span><button type="button" class="btn" id="k-cancel">Cancel</button><button type="submit" class="btn primary">' + (isNew ? "Add track" : "Apply") + "</button></div></form>";
+    openDialog(html, function (dlg) {
+      dlg.querySelector("#k-name").value = tr.name;
+      dlg.querySelector("#k-who").value = tr.who || "";
+      var radio = dlg.querySelector('input[name="k-color"][value="' + (COLORS[tr.color] ? tr.color : "grey") + '"]');
+      if (radio) radio.checked = true;
+      dlg.querySelector("#k-cancel").addEventListener("click", closeDialog);
+      dlg.querySelector("#f-trk").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var name = dlg.querySelector("#k-name").value.trim();
+        if (!name) { dlg.querySelector("#k-err").textContent = "Give the track a name."; dlg.querySelector("#k-name").focus(); return; }
+        var target = isNew ? tr : trackById(tr.id);
+        target.name = name; target.who = dlg.querySelector("#k-who").value.trim();
+        var c = dlg.querySelector('input[name="k-color"]:checked'); target.color = c ? c.value : "grey";
+        if (isNew) state.tracks.push(target);
+        closeDialog(); changed({ gantt: true, legend: true }); flash((isNew ? "Added track “" : "Updated track “") + name + "”.");
+      });
+      if (!isNew) {
+        armTwoStep(dlg.querySelector("#k-del"), "Click again to delete", function () {
+          state.tracks = state.tracks.filter(function (x) { return x.id !== tr.id; });
+          state.tasks = state.tasks.filter(function (x) { return x.track !== tr.id; });
+          closeDialog(); changed({ gantt: true, legend: true, keyDates: true, owners: true }); flash("Deleted track “" + tr.name + "”.");
+        });
+        var mv = function (dir) {
+          var i = state.tracks.findIndex(function (x) { return x.id === tr.id; }), j = i + dir;
+          if (j < 0 || j >= state.tracks.length) return;
+          var tmp = state.tracks[i]; state.tracks[i] = state.tracks[j]; state.tracks[j] = tmp;
+          changed({ gantt: true, legend: true });
+        };
+        dlg.querySelector("#k-up").addEventListener("click", function () { mv(-1); });
+        dlg.querySelector("#k-down").addEventListener("click", function () { mv(1); });
+      }
+    });
+  }
+
+  function openSettings() {
+    var ed = canEdit();
+    var dis = ed ? "" : " disabled";
+    var html = '<form class="dlg" id="f-set" novalidate><h3 id="dlg-title">Plan settings</h3>' +
+      '<label>Title<input id="s-title" autocomplete="off"' + dis + "></label>" +
+      '<label>Goal<textarea id="s-goal" rows="3"' + dis + "></textarea></label>" +
+      '<label>Callout (first sentence shows in bold)<textarea id="s-con" rows="4"' + dis + "></textarea></label>" +
+      '<div class="row2"><label>Timeline starts<input type="date" id="s-start"' + dis + '></label><label>Deadline<input type="date" id="s-end"' + dis + "></label></div>" +
+      '<p class="err" id="s-err" role="alert"></p><div class="dlg-actions"><span class="sp"></span><button type="button" class="btn" id="s-cancel">' + (ed ? "Cancel" : "Close") + "</button>" +
+      (ed ? '<button type="submit" class="btn primary">Apply</button>' : "") + "</div></form>";
+    openDialog(html, function (dlg) {
+      dlg.querySelector("#s-title").value = state.title || "";
+      dlg.querySelector("#s-goal").value = state.goal || "";
+      dlg.querySelector("#s-con").value = state.constraint || "";
+      dlg.querySelector("#s-start").value = state.start;
+      dlg.querySelector("#s-end").value = state.end;
+      dlg.querySelector("#s-cancel").addEventListener("click", closeDialog);
+      if (!ed) return;
+      dlg.querySelector("#f-set").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var s = dlg.querySelector("#s-start").value, en = dlg.querySelector("#s-end").value;
+        if (!isISO(s) || !isISO(en) || en < s) { dlg.querySelector("#s-err").textContent = "Pick a start date and a deadline on or after it."; return; }
+        state.title = dlg.querySelector("#s-title").value.trim() || "Untitled plan";
+        state.goal = dlg.querySelector("#s-goal").value.trim();
+        state.constraint = dlg.querySelector("#s-con").value.trim();
+        state.start = s; state.end = en;
+        closeDialog(); changed({ header: true, gantt: true, keyDates: true }); flash("Plan settings updated.");
+      });
+    });
+  }
+
+  /* ---------- change tracking, drafts, status ---------- */
+  function changed(what) {
+    what = what || {};
+    dirty = JSON.stringify(state) !== JSON.stringify(saved);
+    if (what.header) renderHeader();
+    if (what.owners) renderOwnerFilter();
+    if (what.legend) renderLegend();
+    if (what.gantt) renderGantt(what.focus);
+    if (what.tables) renderTables();
+    scheduleDraft();
+    updateStatus();
+  }
+  function scheduleDraft() {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(writeDraft, 400);
+  }
+  function writeDraft() {
+    try {
+      if (dirty) localStorage.setItem(DRAFT_KEY, JSON.stringify({ baseRev: saved.rev || 1, at: Date.now(), data: state }));
+      else localStorage.removeItem(DRAFT_KEY);
+    } catch (e) {}
+  }
+  function readDraft() { try { var s = localStorage.getItem(DRAFT_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+  function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} }
+
+  function checkDraft() {
+    var d = readDraft();
+    if (!d || !d.data || JSON.stringify(d.data) === JSON.stringify(saved)) { if (d) clearDraft(); return; }
+    var b = $("banner");
+    var when = new Date(d.at);
+    var older = (d.baseRev || 1) !== (saved.rev || 1);
+    b.innerHTML = "<p>" + (older
+      ? "You have unsaved edits from " + esc(when.toLocaleString()) + " made on an older version of this plan. Restoring them replaces what is shown now."
+      : "You have unsaved edits from " + esc(when.toLocaleString()) + ".") + '</p><button class="btn primary" type="button" data-act="draft-restore">Restore edits</button><button class="btn" type="button" data-act="draft-discard">Discard</button>';
+    b.hidden = false;
+  }
+
+  function updateStatus() {
+    var st = $("st"), txt = $("st-text"), save = $("b-save"), exp = $("b-export");
+    st.className = "status" + (mode === "readonly" ? " ro" : dirty ? " dirty" : "");
+    if (mode === "starting") txt.textContent = dirty ? "Unsaved changes" : "Connecting";
+    else if (mode === "readonly") txt.textContent = dirty ? "View only. Your edits stay in this browser" : "View only";
+    else if (mode === "local") txt.textContent = dirty ? "Unsaved changes (kept in this browser)" : "No unsaved changes";
+    else txt.textContent = dirty ? "Unsaved changes" : "All changes saved";
+    save.hidden = mode === "readonly";
+    save.disabled = !dirty || mode === "starting";
+    save.textContent = mode === "local" ? "Download updated page" : mode === "github" ? "Save to GitHub" : "Save changes";
+    exp.hidden = mode === "host" && !downloadsApi;
+    exp.disabled = mode === "starting";
+    ["b-add-task", "b-add-track"].forEach(function (k) { $(k).hidden = mode === "readonly"; });
+    var fm = $("foot-mode");
+    if (mode === "github") {
+      fm.innerHTML = "Save to GitHub commits this page to " + esc(GH.owner + "/" + GH.repo) + " under your GitHub account. The site shows the new version about a minute later." +
+        (getToken() ? ' <button type="button" class="linkbtn" data-act="forget-token">Forget my GitHub token on this browser</button>' : "");
+    } else {
+      fm.textContent = mode === "local"
+        ? "Opened as a local file: Download updated page saves a new copy of this HTML with your changes. Replace the old file with it."
+        : mode === "host" ? "Save changes publishes a new version for everyone who has this page open." : "";
+    }
+  }
+  function flash(msg) {
+    var f = $("flash"); f.textContent = msg;
+    clearTimeout(flashTimer); flashTimer = setTimeout(function () { f.textContent = ""; }, 6000);
+  }
+
+  /* ---------- save ---------- */
+  function headHtml(title) {
+    return '<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<meta name="robots" content="noindex, nofollow">\n<title>' + esc(title) + "</title>\n" +
+      '<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n' +
+      '<link href="' + FONT_CSS + '" rel="stylesheet">\n<script defer src="' + LIB_XLSX + '"></' + "script>\n";
+  }
+  function buildHtml(data) {
+    var json = JSON.stringify(data, null, 1).replace(/</g, "\\u003c");
+    return "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n" + headHtml(data.title || "Plan") +
+      '<style id="app-style">' + styleSrc + "</style>\n</head>\n<body>\n<div id=\"app\"></div>\n" +
+      '<script id="plan-data" type="application/json">' + json + "</" + "script>\n" +
+      '<script id="app-code">' + codeSrc + "</" + "script>\n</body>\n</html>\n";
+  }
+  function nextData() {
+    var n = clone(state);
+    n.rev = (saved.rev || 1) + 1;
+    n.savedAt = new Date().toISOString();
+    return n;
+  }
+  function slug(s) { return String(s || "plan").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60) || "plan"; }
+  function localDownload(filename, blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename; a.style.display = "none";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+  }
+  function save() {
+    if (!dirty) return;
+    var data = nextData();
+    var html = buildHtml(data);
+    var btn = $("b-save");
+    if (mode === "github") { saveGitHub(); return; }
+    if (mode === "local") {
+      localDownload(slug(state.title) + ".html", new Blob([html], { type: "text/html" }));
+      flash("Downloaded the updated page. Replace the old file with it.");
+      return;
+    }
+    if (mode !== "host" || !artifactApi) return;
+    btn.disabled = true; btn.textContent = "Saving…";
+    writeDraft();
+    var attempt = function (retry) {
+      return artifactApi.publish(html).then(function () {
+        clearDraft();
+        flash("Saved. Loading the new version…");
+      }, function (err) {
+        var code = err && err.code;
+        if (code === "upstream_error" && retry) {
+          return new Promise(function (res) { setTimeout(res, 800 + Math.random() * 900); }).then(function () { return attempt(false); });
+        }
+        btn.textContent = "Save changes";
+        if (code === "conflict") { flash("Someone saved a newer version first. The page is reloading to it; your edits are kept and you can restore them."); return; }
+        if (code === "not_writer" || code === "not_granted" || code === "consent_required" || code === "capability_disabled" || code === "capability_removed" || code === "not_declared") {
+          mode = "readonly"; renderAllForMode();
+          flash("You can view this plan but not save it. Your edits stay in this browser; Export .xlsx still works.");
+          return;
+        }
+        if (code === "rate_limited") flash("Saving too often. Wait a minute, then press Save changes again.");
+        else if (code === "too_large") flash("The plan is too large to save. Remove some rows and try again.");
+        else flash("Saving failed (" + (code || "unknown error") + "). Your edits are kept in this browser; try again in a moment.");
+        updateStatus();
+      });
+    };
+    attempt(true);
+  }
+
+  /* ---------- save to GitHub ---------- */
+  function getToken() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; } }
+  function setToken(t) { try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); } catch (e) {} }
+  function b64encode(str) {
+    var bytes = new TextEncoder().encode(str), bin = "";
+    for (var i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+  function b64decode(b64) {
+    var bin = atob(String(b64 || "").replace(/\s/g, "")), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+  function revFromHtml(html) {
+    var tag = '<script id="plan-data" type="application/json">';
+    var a = html.indexOf(tag);
+    if (a < 0) return null;
+    a += tag.length;
+    var b = html.indexOf("</" + "script>", a);
+    try { var r = JSON.parse(html.slice(a, b)).rev; return typeof r === "number" ? r : null; } catch (e) { return null; }
+  }
+  function ghFetch(method, body) {
+    var url = "https://api.github.com/repos/" + GH.owner + "/" + GH.repo + "/contents/" + GH.path + (method === "GET" ? "?ref=" + encodeURIComponent(GH.branch) : "");
+    return fetch(url, {
+      method: method, cache: "no-store",
+      headers: { "Authorization": "Bearer " + getToken(), "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined
+    });
+  }
+  function openTokenDialog(then) {
+    var html = '<form class="dlg" id="f-tok" novalidate><h3 id="dlg-title">Connect to GitHub</h3>' +
+      '<p class="lede">Saving commits this page to ' + esc(GH.owner + "/" + GH.repo) + ' under your GitHub account. You need write access to that repository and a token. The token stays in this browser only.</p>' +
+      '<ol><li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → Settings → Fine-grained tokens → Generate new token</a>.</li>' +
+      '<li>Resource owner: <b>' + esc(GH.owner) + '</b>. Repository access: Only select repositories → <b>' + esc(GH.repo) + '</b>.</li>' +
+      '<li>Repository permissions → Contents: <b>Read and write</b>. Generate, then copy the token.</li>' +
+      '<li>If ' + esc(GH.owner) + ' asks an admin to approve the token, saving works once it is approved. A classic token with the public_repo scope also works.</li></ol>' +
+      '<label>Token<input type="password" id="t-tok" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>' +
+      '<p class="err" id="t-err" role="alert"></p><div class="dlg-actions"><span class="sp"></span><button type="button" class="btn" id="t-cancel">Cancel</button><button type="submit" class="btn primary">Save to GitHub</button></div></form>';
+    openDialog(html, function (dlg) {
+      dlg.querySelector("#t-cancel").addEventListener("click", closeDialog);
+      dlg.querySelector("#f-tok").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var v = dlg.querySelector("#t-tok").value.trim();
+        if (!v) { dlg.querySelector("#t-err").textContent = "Paste a token first."; return; }
+        setToken(v); closeDialog(); updateStatus(); then();
+      });
+    });
+  }
+  function saveGitHub() {
+    if (!dirty) return;
+    if (!getToken()) { openTokenDialog(saveGitHub); return; }
+    var btn = $("b-save");
+    var data = nextData();
+    var html = buildHtml(data);
+    btn.disabled = true; btn.textContent = "Saving…";
+    writeDraft();
+    var fail = function (code, detail) { var e = new Error(code); e.code = code; e.detail = detail; return e; };
+    ghFetch("GET").then(function (res) {
+      if (res.status === 401) throw fail("auth");
+      if (res.status === 403 || res.status === 404) throw fail("access", res.status);
+      if (!res.ok) throw fail("http", res.status);
+      return res.json();
+    }).then(function (file) {
+      var remoteRev = revFromHtml(b64decode(file.content));
+      if (remoteRev != null && remoteRev > (saved.rev || 1)) throw fail("conflict");
+      return ghFetch("PUT", { message: "Update plan (version " + data.rev + ")", content: b64encode(html), sha: file.sha, branch: GH.branch });
+    }).then(function (res) {
+      if (res.status === 409) throw fail("conflict");
+      if (res.status === 401) throw fail("auth");
+      if (res.status === 403 || res.status === 404) throw fail("access", res.status);
+      if (!res.ok) throw fail("http", res.status);
+      saved = clone(data);
+      state.rev = data.rev; state.savedAt = data.savedAt;
+      dirty = JSON.stringify(state) !== JSON.stringify(saved);
+      clearDraft();
+      try { localStorage.setItem(LAST_SAVE_KEY, JSON.stringify({ rev: data.rev, at: Date.now(), data: data })); } catch (e) {}
+      renderHeader(); updateStatus();
+      flash("Saved to GitHub as version " + data.rev + ". The site shows it in about a minute.");
+    }).catch(function (err) {
+      var code = err && err.code;
+      if (code === "auth") { setToken(""); flash("GitHub didn't accept the token. Paste a new one and press Save to GitHub again."); }
+      else if (code === "access") flash("This GitHub account can't write to " + GH.owner + "/" + GH.repo + ". Ask an admin for write access, or check the token's repository and Contents permission.");
+      else if (code === "conflict") flash("Someone saved a newer version first. Reload the page in a minute to get it; your edits are kept and you can restore them.");
+      else if (code === "http") flash("GitHub returned an error (" + err.detail + "). Your edits are kept in this browser; try again in a moment.");
+      else flash("Couldn't reach GitHub. Check the connection; your edits are kept in this browser.");
+      updateStatus();
+    });
+  }
+  function checkLastSave() {
+    var ls = null;
+    try { ls = JSON.parse(localStorage.getItem(LAST_SAVE_KEY) || "null"); } catch (e) {}
+    if (!ls || !ls.data) return;
+    if ((ls.rev || 0) <= (saved.rev || 1) || Date.now() - ls.at > 15 * 60 * 1000) { try { localStorage.removeItem(LAST_SAVE_KEY); } catch (e) {} return; }
+    saved = clone(ls.data); state = clone(ls.data); dirty = false;
+    var b = $("banner");
+    b.innerHTML = "<p>Showing your save from " + esc(new Date(ls.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })) + " (version " + esc(ls.rev) + "). GitHub is still publishing it; other people will see it within a minute or two.</p>";
+    b.hidden = false;
+  }
+
+  /* ---------- export xlsx ---------- */
+  function excelSerial(iso) { return (toDate(iso) - Date.UTC(1899, 11, 30)) / 864e5; }
+  function tint(hex, f) {
+    var n = parseInt(hex, 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    var m = function (c) { return Math.round(c + (255 - c) * f); };
+    return ((1 << 24) + (m(r) << 16) + (m(g) << 8) + m(b)).toString(16).slice(1).toUpperCase();
+  }
+  function loadXlsx() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    return new Promise(function (res, rej) {
+      var s = document.createElement("script"); s.src = LIB_XLSX;
+      s.onload = function () { window.XLSX ? res(window.XLSX) : rej(new Error("load")); };
+      s.onerror = function () { rej(new Error("load")); };
+      document.head.appendChild(s);
+    });
+  }
+  function buildWorkbook(X) {
+    var wb = X.utils.book_new();
+    var HEAD = { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { patternType: "solid", fgColor: { rgb: "2B3038" } }, alignment: { vertical: "center", wrapText: true } };
+    var WRAP = { alignment: { vertical: "top", wrapText: true } };
+    var thin = { style: "thin", color: { rgb: "DDE1E6" } };
+    var tracks = {}; state.tracks.forEach(function (t) { tracks[t.id] = t; });
+    var hexOf = function (tr) { return (COLORS[tr && tr.color] || COLORS.grey)[1]; };
+    var put = function (ws, r, c, cell) { ws[X.utils.encode_cell({ r: r, c: c })] = cell; };
+    var tasks = orderedTasks();
+
+    /* Schedule */
+    var ws = {}, cols = ["Track", "Task", "Owner", "Type", "Status", "Start", "End", "Days", "Notes"];
+    cols.forEach(function (h, c) { put(ws, 0, c, { t: "s", v: h, s: HEAD }); });
+    tasks.forEach(function (t, i) {
+      var r = i + 1, tr = tracks[t.track], R = r + 1;
+      put(ws, r, 0, { t: "s", v: tr ? tr.name : "", s: { font: { bold: true, color: { rgb: hexOf(tr) } }, alignment: { vertical: "top" } } });
+      put(ws, r, 1, { t: "s", v: t.name, s: WRAP });
+      put(ws, r, 2, { t: "s", v: t.owner || "", s: WRAP });
+      put(ws, r, 3, { t: "s", v: KINDS[t.kind] || "Task", s: WRAP });
+      put(ws, r, 4, { t: "s", v: STATUSES[t.status] || "Not started", s: { alignment: { vertical: "top" }, font: { bold: t.status === "blocked", color: { rgb: t.status === "blocked" ? "B8322A" : t.status === "done" ? "1A7F37" : "333333" } } } });
+      put(ws, r, 5, { t: "n", v: excelSerial(t.start), z: "ddd mmm d, yyyy", s: { alignment: { vertical: "top" } } });
+      put(ws, r, 6, { t: "n", v: excelSerial(taskEnd(t)), z: "ddd mmm d, yyyy", s: { alignment: { vertical: "top" } } });
+      put(ws, r, 7, { t: "n", v: diffDays(t.start, taskEnd(t)) + 1, f: "G" + R + "-F" + R + "+1", s: { alignment: { vertical: "top", horizontal: "center" } } });
+      put(ws, r, 8, { t: "s", v: t.notes || "", s: WRAP });
+    });
+    ws["!ref"] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(1, tasks.length), c: cols.length - 1 } });
+    ws["!cols"] = [{ wch: 18 }, { wch: 34 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 17 }, { wch: 17 }, { wch: 6 }, { wch: 60 }];
+    ws["!autofilter"] = { ref: "A1:I" + (tasks.length + 1) };
+    X.utils.book_append_sheet(wb, ws, "Schedule");
+
+    /* Timeline */
+    var rg = range(), tl = {}, FIX = 4, row = 0;
+    var closed = function (iso) { return (state.closures || []).some(function (c) { return isISO(c.start) && isISO(c.end) && iso >= c.start && iso <= c.end; }); };
+    ["Track / task", "Owner", "Status", "Type"].forEach(function (h, c) { put(tl, 0, c, { t: "s", v: h, s: HEAD }); put(tl, 1, c, { t: "s", v: "", s: HEAD }); });
+    for (var i = 0; i < rg.n; i++) {
+      var iso = addDays(rg.s, i), we = dow(iso) === 0 || dow(iso) === 6, cl = closed(iso);
+      var hs = { font: { bold: true, sz: 9, color: { rgb: "FFFFFF" } }, fill: { patternType: "solid", fgColor: { rgb: iso === state.end ? "B8322A" : cl ? "7A828C" : "2B3038" } }, alignment: { horizontal: "center" } };
+      put(tl, 0, FIX + i, { t: "n", v: excelSerial(iso), z: "mmm d", s: hs });
+      put(tl, 1, FIX + i, { t: "s", v: WD[dow(iso)].slice(0, 2), s: { font: { sz: 9, color: { rgb: "FFFFFF" } }, fill: hs.fill, alignment: { horizontal: "center" } } });
+    }
+    row = 2;
+    var emptyFill = function (iso) { return closed(iso) ? "E4E7EB" : (dow(iso) === 0 || dow(iso) === 6) ? "F3F4F6" : null; };
+    state.tracks.forEach(function (tr) {
+      var hx = hexOf(tr);
+      put(tl, row, 0, { t: "s", v: tr.name + (tr.who ? " · " + tr.who : ""), s: { font: { bold: true, color: { rgb: hx } } } });
+      for (var c = 1; c < FIX + rg.n; c++) put(tl, row, c, { t: "s", v: "", s: { border: { bottom: { style: "thin", color: { rgb: hx } } } } });
+      row++;
+      state.tasks.forEach(function (t) {
+        if (t.track !== tr.id) return;
+        put(tl, row, 0, { t: "s", v: "  " + t.name });
+        put(tl, row, 1, { t: "s", v: t.owner || "" });
+        put(tl, row, 2, { t: "s", v: STATUSES[t.status] || "", s: { font: { color: { rgb: t.status === "blocked" ? "B8322A" : t.status === "done" ? "1A7F37" : "555555" } } } });
+        put(tl, row, 3, { t: "s", v: KINDS[t.kind] || "" });
+        var a = diffDays(rg.s, t.start), b = diffDays(rg.s, taskEnd(t));
+        for (var k = 0; k < rg.n; k++) {
+          var iso2 = addDays(rg.s, k), cell = { t: "s", v: "" };
+          if (k >= a && k <= b) {
+            if (isPoint(t)) cell = { t: "s", v: t.kind === "gate" ? "◇" : "◆", s: { font: { bold: true, sz: 12, color: { rgb: hx } }, alignment: { horizontal: "center" } } };
+            else {
+              var fillHex = t.kind === "contingency" ? tint(hx, 0.6) : t.status === "done" ? tint(hx, 0.45) : hx;
+              cell = { t: "s", v: "", s: { fill: { patternType: "solid", fgColor: { rgb: fillHex } }, border: { top: { style: "thin", color: { rgb: "FFFFFF" } }, bottom: { style: "thin", color: { rgb: "FFFFFF" } } } } };
+            }
+          } else {
+            var ef = emptyFill(iso2);
+            if (ef) cell.s = { fill: { patternType: "solid", fgColor: { rgb: ef } } };
+          }
+          put(tl, row, FIX + k, cell);
+        }
+        row++;
+      });
+    });
+    row++;
+    put(tl, row, 0, { t: "s", v: "Legend: colored cells = task, light cells = only if needed or done, ◆ milestone, ◇ decision gate, grey columns = closure, red header = deadline.", s: { font: { italic: true, color: { rgb: "555555" } } } });
+    tl["!ref"] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: row, c: FIX + rg.n - 1 } });
+    var tcols = [{ wch: 36 }, { wch: 16 }, { wch: 12 }, { wch: 13 }];
+    for (i = 0; i < rg.n; i++) tcols.push({ wch: 5.5 });
+    tl["!cols"] = tcols;
+    tl["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 1, c: 0 } }, { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } }, { s: { r: 0, c: 2 }, e: { r: 1, c: 2 } }, { s: { r: 0, c: 3 }, e: { r: 1, c: 3 } }];
+    X.utils.book_append_sheet(wb, tl, "Timeline");
+
+    /* Tables */
+    var sheetNames = { decisions: "Decisions", handoffs: "Handoffs", risks: "Risks" };
+    TABLES.forEach(function (cfg) {
+      var s2 = {}, rows = state[cfg.key] || [];
+      cfg.cols.forEach(function (c, ci) { put(s2, 0, ci, { t: "s", v: c.label, s: HEAD }); });
+      rows.forEach(function (rw, ri) {
+        cfg.cols.forEach(function (c, ci) {
+          var v = rw[c.k] == null ? "" : String(rw[c.k]);
+          if (c.type === "date" && isISO(v)) put(s2, ri + 1, ci, { t: "n", v: excelSerial(v), z: "ddd mmm d, yyyy", s: WRAP });
+          else put(s2, ri + 1, ci, { t: "s", v: c.type === "select" ? (c.options[v] || v) : v, s: WRAP });
+        });
+      });
+      s2["!ref"] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(1, rows.length), c: cfg.cols.length - 1 } });
+      s2["!cols"] = cfg.cols.map(function (c) { return { wch: c.type === "date" ? 18 : c.k === "id" ? 6 : /rec|plan|what|detail/.test(c.k) ? 70 : 24 }; });
+      X.utils.book_append_sheet(wb, s2, sheetNames[cfg.key] || cfg.key);
+    });
+
+    /* About */
+    var ab = {}, info = [["Plan", state.title || ""], ["Goal", state.goal || ""], ["Note", state.constraint || ""], ["Timeline starts", null, state.start], ["Deadline", null, state.end],
+      ["Saved version", String(saved.rev || 1) + (dirty ? " plus unsaved edits" : "")], ["Exported", new Date().toLocaleString()]];
+    info.forEach(function (it, r) {
+      put(ab, r, 0, { t: "s", v: it[0], s: { font: { bold: true }, alignment: { vertical: "top" } } });
+      put(ab, r, 1, it[2] ? { t: "n", v: excelSerial(it[2]), z: "ddd mmm d, yyyy", s: WRAP } : { t: "s", v: it[1], s: WRAP });
+    });
+    ab["!ref"] = "A1:B" + info.length;
+    ab["!cols"] = [{ wch: 16 }, { wch: 100 }];
+    X.utils.book_append_sheet(wb, ab, "About");
+    return wb;
+  }
+  function exportXlsx() {
+    var btn = $("b-export");
+    btn.disabled = true;
+    loadXlsx().then(function (X) {
+      var out = X.write(buildWorkbook(X), { bookType: "xlsx", type: "array" });
+      var filename = slug(state.title) + "_" + todayISO() + ".xlsx";
+      if (downloadsApi) {
+        return downloadsApi.save({ filename: filename, data: out }).then(function () { flash("Exported " + filename + "."); }, function (err) {
+          var code = err && err.code;
+          if (code === "declined") return;
+          if (code === "rate_limited") flash("A save prompt is already open. Finish it, then try again.");
+          else if (code === "unavailable" || code === "not_granted" || code === "capability_disabled" || code === "capability_removed") { downloadsApi = null; updateStatus(); flash("Export isn't available in this view."); }
+          else flash("Export failed (" + (code || "unknown error") + ").");
+        });
+      }
+      localDownload(filename, new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+      flash("Exported " + filename + ".");
+    }, function () {
+      flash("The Excel library didn't load. Check the internet connection and try again.");
+    }).then(function () { btn.disabled = false; });
+  }
+
+  /* ---------- events ---------- */
+  function wire() {
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-act]");
+      if (!b) return;
+      var act = b.dataset.act;
+      if (act === "edit-task") openTaskEditor(b.dataset.id);
+      else if (act === "add-task") openTaskEditor(null, b.dataset.track);
+      else if (act === "edit-track") openTrackEditor(b.dataset.track);
+      else if (act === "add-row") {
+        var cfg = TABLES.filter(function (c) { return c.key === b.dataset.t; })[0];
+        state[cfg.key].push(cfg.blank(state[cfg.key]));
+        changed({ tables: true, gantt: cfg.key === "closures" });
+        var cells = $("tbl-" + cfg.key).querySelectorAll("tbody tr:last-child .cell, tbody tr:last-child input");
+        if (cells[0]) cells[0].focus();
+      } else if (act === "del-row") {
+        if (!b.classList.contains("armed")) {
+          b.classList.add("armed"); b.textContent = "Delete";
+          b.addEventListener("blur", function () { b.classList.remove("armed"); b.textContent = "✕"; }, { once: true });
+          return;
+        }
+        var key = b.dataset.t;
+        state[key].splice(Number(b.dataset.r), 1);
+        changed({ tables: true, gantt: key === "closures" });
+      } else if (act === "draft-restore") {
+        var d = readDraft();
+        if (d && d.data) { state = d.data; $("banner").hidden = true; changed({ header: true, owners: true, legend: true, keyDates: true, gantt: true, tables: true }); flash("Restored your unsaved edits."); }
+      } else if (act === "draft-discard") { clearDraft(); $("banner").hidden = true; }
+      else if (act === "forget-token") { setToken(""); updateStatus(); flash("Removed your GitHub token from this browser."); }
+    });
+    document.addEventListener("input", function (e) {
+      var el = e.target;
+      if (!el.classList || !el.classList.contains("cell")) return;
+      var row = state[el.dataset.t] && state[el.dataset.t][Number(el.dataset.r)];
+      if (!row) return;
+      row[el.dataset.k] = el.innerText.replace(/\n$/, "");
+      changed();
+    });
+    document.addEventListener("change", function (e) {
+      var el = e.target;
+      if (!el.dataset || !el.dataset.t || el.classList.contains("cell")) return;
+      var row = state[el.dataset.t] && state[el.dataset.t][Number(el.dataset.r)];
+      if (!row) return;
+      row[el.dataset.k] = el.value;
+      if (el.tagName === "SELECT") el.className = "tsel chip-" + el.value;
+      changed({ gantt: el.dataset.t === "closures" });
+    });
+    document.addEventListener("focusout", function (e) {
+      var el = e.target;
+      if (el.classList && el.classList.contains("cell")) {
+        var row = state[el.dataset.t] && state[el.dataset.t][Number(el.dataset.r)];
+        if (row && typeof row[el.dataset.k] === "string") { var tr = row[el.dataset.k].trim(); if (tr !== row[el.dataset.k]) { row[el.dataset.k] = tr; changed(); } }
+      }
+    });
+    $("b-add-task").addEventListener("click", function () { openTaskEditor(null); });
+    $("b-add-track").addEventListener("click", function () { openTrackEditor(); });
+    $("b-settings").addEventListener("click", openSettings);
+    $("b-save").addEventListener("click", save);
+    $("b-export").addEventListener("click", exportXlsx);
+    $("sel-owner").addEventListener("change", function (e) { filterOwner = e.target.value; renderGantt(); });
+    var g = $("gantt");
+    g.addEventListener("pointerdown", onPointerDown);
+    g.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    g.addEventListener("pointercancel", onPointerCancel);
+    g.addEventListener("keydown", onBarKey);
+    g.addEventListener("pointerover", function (e) { if (drag) return; var el = e.target.closest(".bar, .ms"); if (el) { var t = taskById(el.dataset.id); if (t) showTip(el, tipHtml(t)); } });
+    g.addEventListener("pointerout", function (e) { if (drag) return; var el = e.target.closest(".bar, .ms"); if (el && !el.contains(e.relatedTarget)) hideTip(); });
+    g.addEventListener("focusin", function (e) { var el = e.target.closest(".bar, .ms"); if (el) { var t = taskById(el.dataset.id); if (t) showTip(el, tipHtml(t)); } });
+    g.addEventListener("focusout", hideTip);
+    $("gantt-scroll").addEventListener("scroll", hideTip, { passive: true });
+    window.addEventListener("pagehide", writeDraft);
+  }
+
+  function renderAllForMode() {
+    renderLegend(); renderGantt(); renderTables(); updateStatus();
+  }
+
+  function initCapabilities() {
+    var tries = 0;
+    if (location.hostname.toLowerCase() === GH.host && !(window.claude && typeof window.claude.use === "function")) { mode = "github"; renderAllForMode(); return; }
+    var hasHost = function () { return !!(window.claude && typeof window.claude.use === "function"); };
+    var wait = function () {
+      if (hasHost()) {
+        Promise.all([
+          window.claude.use("artifact").catch(function () { return null; }),
+          window.claude.use("downloads").catch(function () { return null; })
+        ]).then(function (res) {
+          artifactApi = res[0]; downloadsApi = res[1];
+          mode = artifactApi ? "host" : "readonly";
+          renderAllForMode();
+        });
+        return;
+      }
+      if (++tries > 10) { mode = "local"; renderAllForMode(); return; }
+      setTimeout(wait, 150);
+    };
+    wait();
+  }
+
+  renderShell();
+  if (location.hostname.toLowerCase() === GH.host) checkLastSave();
+  renderHeader();
+  renderOwnerFilter();
+  renderLegend();
+  renderGantt();
+  renderTables();
+  updateStatus();
+  wire();
+  checkDraft();
+  initCapabilities();
+})();
+</script>
+</body>
+</html>
